@@ -1,331 +1,260 @@
-#include "argoat.h"
-#include "configator.h"
-#include "dragonfail.h"
-#include "termbox.h"
+extern crate tui;
 
-#include "draw.h"
-#include "inputs.h"
-#include "login.h"
-#include "utils.h"
-#include "config.h"
+//mod draw;
+//mod inputs;
+//mod login;
+//mod utils;
+mod config;
+mod logger;
+//mod parser;
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
+use std::marker::StructuralEq;
+use std::path::PathBuf;
 
-#define ARG_COUNT 7
-// things you can define:
-// GIT_VERSION_STRING
+use crate::logger::Logger;
+use crate::config::Config;
 
-// global
-struct lang lang;
-struct config config;
+const ARG_COUNT: u8 = 7;
+const GIT_VERSION_STRING: &str = "0.1.0";
+const HELP_MSG: &str = "Usage: ly [OPTION]...
+  -c, --config=FILE     use FILE as config file
+  -h, --help            display this help and exit
+  -v, --version         display version and exit";
+const DEFAULT_PATH: &str = "/etc/ly/config.ini";
 
-// args handles
-void arg_help(void* data, char** pars, const int pars_count)
-{
-	printf("If you want to configure Ly, please check the config file, usually located at /etc/ly/config.ini.\n");
+enum Status {
+	Ok,
+	Info(String),
+	Bail(String),
 }
 
-void arg_version(void* data, char** pars, const int pars_count)
-{
-#ifdef GIT_VERSION_STRING
-	printf("Ly version %s\n", GIT_VERSION_STRING);
-#else
-	printf("Ly version unknown\n");
-#endif
-}
-
-// low-level error messages
-void log_init(char** log)
-{
-	log[DGN_OK] = lang.err_dgn_oob;
-	log[DGN_NULL] = lang.err_null;
-	log[DGN_ALLOC] = lang.err_alloc;
-	log[DGN_BOUNDS] = lang.err_bounds;
-	log[DGN_DOMAIN] = lang.err_domain;
-	log[DGN_MLOCK] = lang.err_mlock;
-	log[DGN_XSESSIONS_DIR] = lang.err_xsessions_dir;
-	log[DGN_XSESSIONS_OPEN] = lang.err_xsessions_open;
-	log[DGN_PATH] = lang.err_path;
-	log[DGN_CHDIR] = lang.err_chdir;
-	log[DGN_PWNAM] = lang.err_pwnam;
-	log[DGN_USER_INIT] = lang.err_user_init;
-	log[DGN_USER_GID] = lang.err_user_gid;
-	log[DGN_USER_UID] = lang.err_user_uid;
-	log[DGN_PAM] = lang.err_pam;
-	log[DGN_HOSTNAME] = lang.err_hostname;
-}
-
-void arg_config(void* data, char** pars, const int pars_count)
-{
-	*((char **)data) = *pars;
-}
-
-fn main(int argc, char** argv) {
-	// init error lib
-	log_init(dgn_init());
-
-	// load config
-	config_defaults();
-	lang_defaults();
-
-	char *config_path = NULL;
-	// parse args
-	const struct argoat_sprig sprigs[ARG_COUNT] =
-	{
-		{NULL, 0, NULL, NULL},
-		{"config", 0, &config_path, arg_config},
-		{"c", 0, &config_path, arg_config},
-		{"help", 0, NULL, arg_help},
-		{"h", 0, NULL, arg_help},
-		{"version", 0, NULL, arg_version},
-		{"v", 0, NULL, arg_version},
-	};
-
-	struct argoat args = {sprigs, ARG_COUNT, NULL, 0, 0};
-	argoat_graze(&args, argc, argv);
-
-	// init inputs
-	struct desktop desktop;
-	struct text login;
-	struct text password;
-	input_desktop(&desktop);
-	input_text(&login, config.max_login_len);
-	input_text(&password, config.max_password_len);
-
-	if (dgn_catch())
-	{
-		config_free();
-		lang_free();
-		return 1;
+impl Status {
+	fn handle(&self, log: &mut Logger) {
+		match self {
+			Status::Ok => {}
+			Status::Info(msg) => {
+				println!("{}", msg);
+				std::process::exit(0);
+			},
+			Status::Bail(msg) => {
+				log.log(msg);
+				println!("{}", msg);
+				std::process::exit(1);
+			}
+		}
 	}
+}
 
-	config_load(config_path);
-	lang_load();
 
-	void* input_structs[3] =
-	{
-		(void*) &desktop,
-		(void*) &login,
-		(void*) &password,
-	};
+fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
+	while !args.is_empty() {
+		let arg = args.remove(0);
+		match arg.as_str() {
+			"--config" | "-c" => 	conf.config_path = Some(PathBuf::from(args.remove(0))),
+			"--help" | "-h" => 		return Status::Info(format!("{HELP_MSG}")),
+			"--version" | "-v" => 	return Status::Info(format!("Ly version {GIT_VERSION_STRING}")),
+			_ => 					return Status::Bail(format!("Unknown argument: {arg}")),
+		}
+	}
+	Status::Ok
+}
 
-	void (*input_handles[3]) (void*, struct tb_event*) =
-	{
-		handle_desktop,
-		handle_text,
-		handle_text,
-	};
+fn main() {
+	let args = std::env::args().collect::<Vec<String>>();
 
-	desktop_load(&desktop);
-	load(&desktop, &login);
+	let mut log = Logger::new();
+	let mut config = Config::new();
 
-	// start termbox
-	tb_init();
-	tb_select_output_mode(TB_OUTPUT_NORMAL);
-	tb_clear();
+	parse_args(args, &mut config)
+		.handle(&mut log);
 
-	// init visible elements
-	struct tb_event event;
-	struct term_buf buf;
+	config.load()
+		.handle(&mut log);
+
+	// TODO: load last saved state into current for pre-input
+
+	// load the language right about now
 	
-	//Place the curser on the login field if there is no saved username, if there is, place the curser on the password field
-	uint8_t active_input;
-        if (config.default_input == LOGIN_INPUT && login.text != login.end){
-        	active_input = PASSWORD_INPUT;
-        }
-        else{
-        	active_input = config.default_input;
-        }
+	// create 3 buffers with initial values from config
+
+	let buffers = [
+		String::new(),
+		String::new(),
+		String::new(),
+	];
+
+	/*
+	let inputs = [
+		Input::new(&buffers[0], config.login_input),
+		Input::new(&buffers[1], config.password_input),
+		Input::new(&buffers[2], config.desktop_input),
+	];
+	*/
+
+	// lazy load desktop or something idk
 
 
-	// init drawing stuff
-	draw_init(&buf);
+	// start tui
+	//let ui = tui::Terminal::new().unwrap();
 
-	// draw_box and position_input are called because they need to be
-	// called before *input_handles[active_input] for the cursor to be
-	// positioned correctly
-	draw_box(&buf);
-	position_input(&buf, &desktop, &login, &password);
-	(*input_handles[active_input])(input_structs[active_input], NULL);
+	let screen = Screen::new(ui);
+	let events = screen.events();
 
-	if (config.animate)
-	{
-		animate_init(&buf);
+	
+	screen.draw_init();
 
-		if (dgn_catch())
-		{
-			config.animate = false;
-			dgn_reset();
-		}
-	}
+	// Place the curser on the login field if there is no saved username, if there is, place the curser on the password field
+	screen.place_cursor(); // config.default_input
 
-	// init state info
-	int error;
-	bool run = true;
-	bool update = true;
-	bool reboot = false;
-	bool shutdown = false;
-	uint8_t auth_fails = 0;
+	// if config.animate { screen.animate_init(); }
 
-	switch_tty(&buf);
+	let state = State::new(buffers);
+	// // init state info
+	// int error;
+	// bool run = true;
+	// bool update = true;
+	// bool reboot = false;
+	// bool shutdown = false;
+	// uint8_t auth_fails = 0;
 
-	// main loop
-	while (run)
-	{
-		if (update)
-		{
-			if (auth_fails < 10)
-			{
-				(*input_handles[active_input])(input_structs[active_input], NULL);
-				tb_clear();
-				animate(&buf);
-				draw_box(&buf);
-				draw_labels(&buf);
-				if(!config.hide_f1_commands)
-					draw_f_commands();
-				draw_lock_state(&buf);
-				position_input(&buf, &desktop, &login, &password);
-				draw_desktop(&desktop);
-				draw_input(&login);
-				draw_input_mask(&password);
-				update = config.animate;
-			}
-			else
-			{
-				usleep(10000);
-				update = cascade(&buf, &auth_fails);
+	// switch_tty(&buf);
+
+	while state.run {
+		if state.update {
+			if state.auth_fails < 10 {
+				//(*input_handles[active_input])(input_structs[active_input], NULL);
+				//tb_clear();
+				//animate(&buf);
+				//draw_box(&buf);
+				//draw_labels(&buf);
+				//if(!config.hide_f1_commands)
+				//	draw_f_commands();
+				//draw_lock_state(&buf);
+				//position_input(&buf, &desktop, &login, &password);
+				//draw_desktop(&desktop);
+				//draw_input(&login);
+				//draw_input_mask(&password);
+				//update = config.animate;
+			} else {
+				//usleep(10000);
+				//update = cascade(&buf, &auth_fails);
 			}
 
-			tb_present();
+			screen.draw();
 		}
 
-		if (config.animate) {
-			error = tb_peek_event(&event, config.min_refresh_delta);
-		} else {
-			error = tb_poll_event(&event);
-		}
+		// if (config.animate) {
+		// 	error = tb_peek_event(&event, config.min_refresh_delta);
+		// } else {
+		// 	error = tb_poll_event(&event);
+		// }
 
-		if (error < 0)
-		{
-			continue;
-		}
+		// if (error < 0)
+		// {
+		// 	continue;
+		// }
 
-		if (event.type == TB_EVENT_KEY)
-		{
-			switch (event.key)
-			{
-			case TB_KEY_F1:
-				shutdown = true;
-				run = false;
-				break;
-			case TB_KEY_F2:
-				reboot = true;
-				run = false;
-				break;
-			case TB_KEY_CTRL_C:
-				run = false;
-				break;
-			case TB_KEY_CTRL_U:
-				if (active_input > 0)
-				{
-					input_text_clear(input_structs[active_input]);
-					update = true;
-				}
-				break;
-			case TB_KEY_ARROW_UP:
-				if (active_input > 0)
-				{
-					--active_input;
-					update = true;
-				}
-				break;
-			case TB_KEY_ARROW_DOWN:
-				if (active_input < 2)
-				{
-					++active_input;
-					update = true;
-				}
-				break;
-			case TB_KEY_TAB:
-				++active_input;
 
-				if (active_input > 2)
-				{
-					active_input = SESSION_SWITCH;
-				}
-				update = true;
-				break;
-			case TB_KEY_ENTER:
-				save(&desktop, &login);
-				auth(&desktop, &login, &password, &buf);
-				update = true;
+	// 	if (event.type == TB_EVENT_KEY)
+	// 	{
+	// 		switch (event.key)
+	// 		{
+	// 		case TB_KEY_F1:
+	// 			shutdown = true;
+	// 			run = false;
+	// 			break;
+	// 		case TB_KEY_F2:
+	// 			reboot = true;
+	// 			run = false;
+	// 			break;
+	// 		case TB_KEY_CTRL_C:
+	// 			run = false;
+	// 			break;
+	// 		case TB_KEY_CTRL_U:
+	// 			if (active_input > 0)
+	// 			{
+	// 				input_text_clear(input_structs[active_input]);
+	// 				update = true;
+	// 			}
+	// 			break;
+	// 		case TB_KEY_ARROW_UP:
+	// 			if (active_input > 0)
+	// 			{
+	// 				--active_input;
+	// 				update = true;
+	// 			}
+	// 			break;
+	// 		case TB_KEY_ARROW_DOWN:
+	// 			if (active_input < 2)
+	// 			{
+	// 				++active_input;
+	// 				update = true;
+	// 			}
+	// 			break;
+	// 		case TB_KEY_TAB:
+	// 			++active_input;
 
-				if (dgn_catch())
-				{
-					++auth_fails;
-					// move focus back to password input
-					active_input = PASSWORD_INPUT;
+	// 			if (active_input > 2)
+	// 			{
+	// 				active_input = SESSION_SWITCH;
+	// 			}
+	// 			update = true;
+	// 			break;
+	// 		case TB_KEY_ENTER:
+	// 			save(&desktop, &login);
+	// 			auth(&desktop, &login, &password, &buf);
+	// 			update = true;
 
-					if (dgn_output_code() != DGN_PAM)
-					{
-						buf.info_line = dgn_output_log();
-					}
+	// 			if (dgn_catch())
+	// 			{
+	// 				++auth_fails;
+	// 				// move focus back to password input
+	// 				active_input = PASSWORD_INPUT;
 
-					if (config.blank_password)
-					{
-						input_text_clear(&password);
-					}
+	// 				if (dgn_output_code() != DGN_PAM)
+	// 				{
+	// 					buf.info_line = dgn_output_log();
+	// 				}
 
-					dgn_reset();
-				}
-				else
-				{
-					buf.info_line = lang.logout;
-				}
+	// 				if (config.blank_password)
+	// 				{
+	// 					input_text_clear(&password);
+	// 				}
 
-				load(&desktop, &login);
-				system("tput cnorm");
-				break;
-			default:
-				(*input_handles[active_input])(
-					input_structs[active_input],
-					&event);
-				update = true;
-				break;
-			}
-		}
+	// 				dgn_reset();
+	// 			}
+	// 			else
+	// 			{
+	// 				buf.info_line = lang.logout;
+	// 			}
+
+	// 			load(&desktop, &login);
+	// 			system("tput cnorm");
+	// 			break;
+	// 		default:
+	// 			(*input_handles[active_input])(
+	// 				input_structs[active_input],
+	// 				&event);
+	// 			update = true;
+	// 			break;
+	// 		}
+	// 	}
+	// }
 	}
 
-	// stop termbox
-	tb_shutdown();
+	screen.close();
 
-	// free inputs
-	input_desktop_free(&desktop);
-	input_text_free(&login);
-	input_text_free(&password);
-	free_hostname();
-
-	// unload config
-	draw_free(&buf);
-	lang_free();
-
-	if (shutdown)
-	{
-		execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
+	match state.end {
+		End::Boot => {
+			//execl("/bin/sh", "sh", "-c", config.boot_cmd, NULL);
+		},
+		End::Shutdown => {
+			//execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
+		},
+		End::Reboot => {
+			//execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
+		},
+		_ => {},
 	}
 
-	if (reboot)
-	{
-		execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
-	}
-
-	config_free();
-
-	return 0;
 }
