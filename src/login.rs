@@ -1,41 +1,7 @@
-#ifndef H_LY_LOGIN
-#define H_LY_LOGIN
-
-#include "draw.h"
-#include "inputs.h"
-
-void auth(
-	struct desktop* desktop,
-	struct text* login,
-	struct text* password,
-	struct term_buf* buf);
-
-#endif
 
 
-#include "dragonfail.h"
-#include "termbox.h"
-
-#include "inputs.h"
-#include "draw.h"
-#include "utils.h"
-#include "config.h"
-#include "login.h"
-
-#include <errno.h>
-#include <grp.h>
-#include <pwd.h>
-#include <security/pam_appl.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <utmp.h>
-#include <xcb/xcb.h>
+//use"draw.h"
+//use "inputs.h"
 
 int get_free_display()
 {
@@ -136,153 +102,52 @@ int login_conv(
 	return ok;
 }
 
-void pam_diagnose(int error, struct term_buf* buf)
-{
-	switch (error)
-	{
-		case PAM_ACCT_EXPIRED:
-		{
-			buf->info_line = lang.err_pam_acct_expired;
-			break;
-		}
-		case PAM_AUTH_ERR:
-		{
-			buf->info_line = lang.err_pam_auth;
-			break;
-		}
-		case PAM_AUTHINFO_UNAVAIL:
-		{
-			buf->info_line = lang.err_pam_authinfo_unavail;
-			break;
-		}
-		case PAM_BUF_ERR:
-		{
-			buf->info_line = lang.err_pam_buf;
-			break;
-		}
-		case PAM_CRED_ERR:
-		{
-			buf->info_line = lang.err_pam_cred_err;
-			break;
-		}
-		case PAM_CRED_EXPIRED:
-		{
-			buf->info_line = lang.err_pam_cred_expired;
-			break;
-		}
-		case PAM_CRED_INSUFFICIENT:
-		{
-			buf->info_line = lang.err_pam_cred_insufficient;
-			break;
-		}
-		case PAM_CRED_UNAVAIL:
-		{
-			buf->info_line = lang.err_pam_cred_unavail;
-			break;
-		}
-		case PAM_MAXTRIES:
-		{
-			buf->info_line = lang.err_pam_maxtries;
-			break;
-		}
-		case PAM_NEW_AUTHTOK_REQD:
-		{
-			buf->info_line = lang.err_pam_authok_reqd;
-			break;
-		}
-		case PAM_PERM_DENIED:
-		{
-			buf->info_line = lang.err_pam_perm_denied;
-			break;
-		}
-		case PAM_SESSION_ERR:
-		{
-			buf->info_line = lang.err_pam_session;
-			break;
-		}
-		case PAM_SYSTEM_ERR:
-		{
-			buf->info_line = lang.err_pam_sys;
-			break;
-		}
-		case PAM_USER_UNKNOWN:
-		{
-			buf->info_line = lang.err_pam_user_unknown;
-			break;
-		}
-		case PAM_ABORT:
-		default:
-		{
-			buf->info_line = lang.err_pam_abort;
-			break;
-		}
-	}
-
-	dgn_throw(DGN_PAM);
-}
-
-void env_init(struct passwd* pwd)
-{
-	extern char** environ;
-	char* term = getenv("TERM");
-	char* lang = getenv("LANG");
-	// clean env
-	environ[0] = NULL;
+fn set_env(pswd: Password) {
 	
-	setenv("TERM", term ? term : "linux", 1);
-	setenv("HOME", pwd->pw_dir, 1);
-	setenv("PWD", pwd->pw_dir, 1);
-	setenv("SHELL", pwd->pw_shell, 1);
-	setenv("USER", pwd->pw_name, 1);
-	setenv("LOGNAME", pwd->pw_name, 1);
-	setenv("LANG", lang ? lang : "C", 1);
+	let term = std::env::get("TERM");
+	let lang = std::env::get("LANG");
+	
+	//setenv("TERM", term ? term : "linux", 1);
+	//setenv("HOME", pwd->pw_dir, 1);
+	//setenv("PWD", pwd->pw_dir, 1);
+	//setenv("SHELL", pwd->pw_shell, 1);
+	//setenv("USER", pwd->pw_name, 1);
+	//setenv("LOGNAME", pwd->pw_name, 1);
+	//setenv("LANG", lang ? lang : "C", 1);
 
 	// Set PATH if specified in the configuration
-	if (strlen(config.path))
-	{
-		int ok = setenv("PATH", config.path, 1);
-
-		if (ok != 0)
-		{
-			dgn_throw(DGN_PATH);
-		}
+	if let path = self.config.path {
+		//_ = setenv("PATH", config.path, 1);
 	}
 }
 
-void env_xdg_session(const enum display_server display_server)
-{
-	switch (display_server)
-	{
-		case DS_WAYLAND:
-		{
-			setenv("XDG_SESSION_TYPE", "wayland", 1);
-			break;
-		}
-		case DS_SHELL:
-		{
-			setenv("XDG_SESSION_TYPE", "tty", 0);
-			break;
-		}
-		case DS_XINITRC:
-		case DS_XORG:
-		{
-			setenv("XDG_SESSION_TYPE", "x11", 0);
-			break;
-		}
+enum DisplayServer {
+	Wayland,
+	Shell,
+	Script,
+}
+
+fn set_xdg_session_env(display_server: DisplayServer) {
+	match display_server {
+		DispayServer::Wayland => { setenv("XDG_SESSION_TYPE", "wayland", 1) },
+		DispayServer::Shell => { setenv("XDG_SESSION_TYPE", "tty", 0) },
+		DisplayServer::Script => {},
 	}
 }
 
-void env_xdg(const char* tty_id, const char* desktop_name)
-{
+	
+/*
+fn set_xdg_env(tty_id: u8, desktop_name: String) {
     char user[20];
     snprintf(user, 20, "/run/user/%d", getuid());
-    setenv("XDG_RUNTIME_DIR", user, 0);
+	setenv("XDG_RUNTIME_DIR", user, 0);
     setenv("XDG_SESSION_CLASS", "user", 0);
     setenv("XDG_SESSION_ID", "1", 0);
     setenv("XDG_SESSION_DESKTOP", desktop_name, 0);
     setenv("XDG_SEAT", "seat0", 0);
     setenv("XDG_VTNR", tty_id, 0);
 }
+*/
 
 void add_utmp_entry(
 	struct utmp *entry,
@@ -728,13 +593,9 @@ void auth(
 	}
 }
 
-#ifndef H_DRAGONFAIL_ERROR
-#define H_DRAGONFAIL_ERROR
 
-enum dgn_error
-{
+enum DGN_ERROR {
 	DGN_OK, // do not remove
-
 	DGN_NULL,
 	DGN_ALLOC,
 	DGN_BOUNDS,
@@ -750,8 +611,6 @@ enum dgn_error
 	DGN_USER_UID,
 	DGN_PAM,
 	DGN_HOSTNAME,
-
 	DGN_SIZE, // do not remove
-};
+}
 
-#endif

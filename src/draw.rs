@@ -1,15 +1,11 @@
-#ifndef H_LY_DRAW
-#define H_LY_DRAW
 
-#include "termbox.h"
-#include "inputs.h"
 
-#include <stdbool.h>
-#include <stdint.h>
+//use termbox;
+//use "inputs.h"
 
-struct box
-{
-	uint32_t left_up;
+
+struct Box {
+	left_up: u32,
 	uint32_t left_down;
 	uint32_t right_up;
 	uint32_t right_down;
@@ -17,32 +13,26 @@ struct box
 	uint32_t bot;
 	uint32_t left;
 	uint32_t right;
-};
+}
 
-struct matrix_dot
-{
-	int val;
-	bool is_head;
-};
+struct MatrixDot {
+	val: i32,
+	is_head: bool,
+}
 
-struct matrix_state
-{
-	struct matrix_dot** grid;
-	int* length;
-	int* spaces;
-	int* updates;
-};
+struct MatrixState {
+	grid: Vec<Vec<MatrixDot>>,
+	updates: i32,
+}
 
-struct doom_state
-{
-	uint8_t* buf;
-};
+struct DoomState {
+	buf: String;
+}
 
-union anim_state
-{
-	struct doom_state* doom;
-	struct matrix_state* matrix;
-};
+struct AnimationState {
+	doom: DoomState,
+	matrix: MatrixState,
+}
 
 struct term_buf
 {
@@ -86,7 +76,6 @@ void animate_init(struct term_buf* buf);
 void animate(struct term_buf* buf);
 bool cascade(struct term_buf* buf, uint8_t* fails);
 
-#endif
 
 
 #include "dragonfail.h"

@@ -1,3 +1,18 @@
+
+struct Input {
+	buffer: String,
+	//config: InputConfig,
+}
+
+impl Input {
+	fn new(buffer: &str, config: InputConfig) -> Self {
+		Self {
+			buffer: String::from(buffer),
+
+		}
+	}
+}
+
 #ifndef H_LY_INPUTS
 #define H_LY_INPUTS
 
