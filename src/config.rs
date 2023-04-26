@@ -1,59 +1,67 @@
 //! Configuration file parser
 //! Code should work before config is meaningful
 
-//use crate::parser::parse_file;
 
-use std::path::PathBuf;
-use crate::{DEFAULT_PATH, Status};
+// TODO todo!();
 
+
+// HACK this is just to get the program running
 pub struct Config {
-	pub config_path: Option<PathBuf>,
-	//desktop: Desktop,
-	//login: String,
-	//password: String,
-	//lang: Lang,
+
 }
 
-impl Config {
-	pub fn new() -> Self {
-		Self {
-			config_path: Some(PathBuf::new()),
-			//desktop: Desktop {
-			//	display: String::new(),
-			//	command: String::new(),
-			//},
-			//login: String::new(),
-			//password: String::new(),
-			//lang: Lang::default(),
-		}
-	}
+// use std::path::PathBuf;
+// use crate::{DEFAULT_PATH, Status};
+//
+// pub struct Config {
+// 	pub config_path: Option<PathBuf>,
+// 	//desktop: Desktop,
+// 	//login: String,
+// 	//password: String,
+// 	//lang: Lang,
+// }
+//
+// impl Config {
+// 	pub fn new() -> Self {
+// 		Self {
+// 			config_path: Some(PathBuf::new()),
+// 			//desktop: Desktop {
+// 			//	display: String::new(),
+// 			//	command: String::new(),
+// 			//},
+// 			//login: String::new(),
+// 			//password: String::new(),
+// 			//lang: Lang::default(),
+// 		}
+// 	}
+//
+// 	pub fn load(&mut self) -> Status {
+// 		let long_live = PathBuf::from(DEFAULT_PATH);
+//
+// 		let used_path: &PathBuf = match &self.config_path {
+// 			Some(path) => path,
+// 			None => &long_live,
+// 		};
+//
+// 		let file = match std::fs::read_to_string(used_path) {
+// 			Ok(config) => config,
+// 			Err(e) => return Status::Bail(format!("Error reading config file: {}", e)),
+// 		};
+//
+// 		//parse_file(file, self)
+// 		Status::Ok
+// 	}
+// }
+//
+// struct Lang;
+//
+// struct Desktop {
+// 	display: String,
+// 	command: String,
+// }
 
-	pub fn load(&mut self) -> Status {
-		let long_live = PathBuf::from(DEFAULT_PATH);
-
-		let used_path: &PathBuf = match &self.config_path {
-			Some(path) => path,
-			None => &long_live,
-		};
-
-		let file = match std::fs::read_to_string(used_path) {
-			Ok(config) => config,
-			Err(e) => return Status::Bail(format!("Error reading config file: {}", e)),
-		};
-
-		//parse_file(file, self)
-		Status::Ok
-	}
-}
 
 
-
-struct Lang;
-
-struct Desktop {
-	display: String,
-	command: String,
-}
 
 /*
 #ifndef H_LY_CONFIG

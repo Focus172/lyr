@@ -1,6 +1,16 @@
 extern crate crossterm;
 extern crate tui;
 
+//mod draw;
+//mod inputs;
+//mod login;
+mod utils;
+mod config;
+// mod logger;
+//mod parser;
+mod screen;
+mod state;
+
 use crossterm::{
     execute,
     terminal::{enable_raw_mode, EnterAlternateScreen},
@@ -9,20 +19,13 @@ use std::{io, path::PathBuf, thread, time::Duration};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph, Widget},
+    widgets::{Block, Borders, Paragraph},
     Frame, Terminal,
 };
-
-//mod draw;
-//mod inputs;
-//mod login;
-//mod utils;
-mod config;
-mod logger;
-//mod parser;
-
+use crate::state::State;
 use crate::config::Config;
-use crate::logger::Logger;
+// use crate::logger::Logger;
+use crate::screen::Screen;
 
 const ARG_COUNT: u8 = 7;
 const GIT_VERSION_STRING: &str = "0.1.0";
@@ -32,78 +35,57 @@ const HELP_MSG: &str = "Usage: lyr [OPTION]...
   -v, --version         display version and exit";
 const DEFAULT_PATH: &str = "/etc/lyr/config.ini";
 
-enum Status {
-    Ok,
-    Info(String),
-    Bail(String),
+enum End {
+    Boot,
+    Reboot,
+    Shutdown,
 }
 
-impl Status {
-    fn handle(&self, log: &mut Logger) {
-        match self {
-            Status::Ok => {}
-            Status::Info(msg) => {
-                println!("{}", msg);
-                std::process::exit(0);
-            }
-            Status::Bail(msg) => {
-                log.log(msg);
-                println!("{}", msg);
-                std::process::exit(1);
-            }
-        }
-    }
-}
-
-fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
-    while !args.is_empty() {
-        let arg = args.remove(0);
-        match arg.as_str() {
-            "--config" | "-c" => conf.config_path = Some(PathBuf::from(args.remove(0))),
-            "--help" | "-h" => return Status::Info(format!("{HELP_MSG}")),
-            "--version" | "-v" => return Status::Info(format!("Ly version {GIT_VERSION_STRING}")),
-            _ => return Status::Bail(format!("Unknown argument: {arg}")),
-        }
-    }
-    Status::Ok
-}
-
-fn ui<B: Backend>(f: &mut Frame<B>) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(1)
-        .constraints(
-            [
-                Constraint::Percentage(10),
-                Constraint::Percentage(80),
-                Constraint::Percentage(10),
-            ]
-            .as_ref(),
-        )
-        .split(f.size());
-    let block = Block::default().title("Binary").borders(Borders::ALL);
-    f.render_widget(block, chunks[0]);
-    let block = Block::default().title("Input").borders(Borders::ALL);
-    f.render_widget(block, chunks[1]);
-
-    let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
-        Block::default()
-            .title("Block")
-            .borders(Borders::ALL)
-    );
-
-    f.render_widget(block, chunks[2]);
-}
+// enum Status {
+//     Ok,
+//     Info(String),
+//     Bail(String),
+// }
+//
+// impl Status {
+//     fn handle(&self, log: &mut Logger) {
+//         match self {
+//             Status::Ok => {}
+//             Status::Info(msg) => {
+//                 println!("{}", msg);
+//                 std::process::exit(0);
+//             }
+//             Status::Bail(msg) => {
+//                 log.log(msg);
+//                 println!("{}", msg);
+//                 std::process::exit(1);
+//             }
+//         }
+//     }
+// }
+//
+// fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
+//     while !args.is_empty() {
+//         let arg = args.remove(0);
+//         match arg.as_str() {
+//             "--config" | "-c" => conf.config_path = Some(PathBuf::from(args.remove(0))),
+//             "--help" | "-h" => return Status::Info(format!("{HELP_MSG}")),
+//             "--version" | "-v" => return Status::Info(format!("Ly version {GIT_VERSION_STRING}")),
+//             _ => return Status::Bail(format!("Unknown argument: {arg}")),
+//         }
+//     }
+//     Status::Ok
+// }
 
 fn main() -> Result<(), io::Error> {
-    let args = std::env::args().collect::<Vec<String>>();
+    // let args = std::env::args().collect::<Vec<String>>();
 
-    let mut log = Logger::new();
-    let mut config = Config::new();
+    // let mut log = Logger::new();
+    // let mut config = Config::new();
 
-    parse_args(args, &mut config).handle(&mut log);
+    // parse_args(args, &mut config).handle(&mut log);
 
-    config.load().handle(&mut log);
+    // config.load().handle(&mut log);
 
     // create 3 buffers with initial values from config
     let buffers = [String::new(), String::new(), String::new()];
@@ -122,41 +104,25 @@ fn main() -> Result<(), io::Error> {
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-    terminal.clear()?;
-    enable_raw_mode()?;
+    let mut terminal:  = Terminal::new(backend)?;
 
-    terminal.draw(|f| {
-        ui(f);
-        /*
-        let size = f.size();
-        let block = Block::default()
-            .title("Block")
-            .borders(Borders::ALL);
-        f.render_widget(block, size);
-        */
-    })?;
 
-    thread::sleep(Duration::from_millis(5000));
+    // These object are all owned by main who over sees them
+    // the events tell main what is happening, it stores these 
+    // temporaryly in state then tells the screen to render it
+    let mut state = State::new();
 
     let screen = Screen::new(ui);
     let events = screen.events();
+    screen.draw();
 
-    screen.draw_init();
 
     // Place the curser on the login field if there is no saved username, if there is, place the curser on the password field
     screen.place_cursor(); // config.default_input
 
     // if config.animate { screen.animate_init(); }
 
-    let state = State::new(buffers);
-    // // init state info
-    // int error;
-    // bool run = true;
-    // bool update = true;
-    // bool reboot = false;
-    // bool shutdown = false;
-    // uint8_t auth_fails = 0;
+    // the buffers need to go somewhere
 
     // switch_tty(&buf);
 
@@ -190,10 +156,14 @@ fn main() -> Result<(), io::Error> {
         // 	error = tb_poll_event(&event);
         // }
 
-        // if (error < 0)
-        // {
-        // 	continue;
-        // }
+        if state.error != None {
+            // well go on do somethign about it
+            panic!("Some error happened");
+        }
+        
+        for event in screen.event {
+            // do somethign and handle all those key presses
+        }
 
         // 	if (event.type == TB_EVENT_KEY)
         // 	{
@@ -295,5 +265,8 @@ fn main() -> Result<(), io::Error> {
             //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
         }
         _ => {}
-    }
+    };
+
+    Ok(())
 }
+
