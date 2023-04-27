@@ -1,27 +1,39 @@
+use std::{sync::mpsc::Sender, io::Stdin};
 
-struct Input {
-	buffer: String,
+
+pub struct Input {
+    stdin: Stdin,
+    port: Sender<String>,
+    // buffer: String,
 	//config: InputConfig,
 }
 
 impl Input {
-	fn new(buffer: &str, config: InputConfig) -> Self {
-		Self {
-			buffer: String::from(buffer),
-
+	pub fn new(input: Stdin, msg: Sender<String>) -> Input {
+		Input {
+            stdin: input,
+            port: msg,
 		}
 	}
+
+    pub fn read_events(&mut self) {
+        loop {
+            let mut buffer = String::new();
+            self.stdin.read_line(&mut buffer);
+            self.port.send(buffer).unwrap();
+        }
+    } 
 }
 
-use std::io::{self, Write};
-use termion::event::Key;
+// use std::io::{self, Write};
+// use termion::event::Key;
 
-enum DisplayServer {
-    DS_WAYLAND,
-    DS_SHELL,
-    DS_XINITRC,
-    DS_XORG
-}
+// enum DisplayServer {
+//     DS_WAYLAND,
+//     DS_SHELL,
+//     DS_XINITRC,
+//     DS_XORG
+// }
 
 struct Text {
 	// char* text;
@@ -35,18 +47,18 @@ struct Text {
 	// uint16_t y;
 }
 
-struct Desktop {
+// struct Desktop {
 	// char** list;
     // char** list_simple;
 	// char** cmd;
-	display_server: DisplayServer,
+	// display_server: DisplayServer,
 
 	// uint16_t cur;
 	// uint16_t len;
 	// uint16_t visible_len;
 	// uint16_t x;
 	// uint16_t y;
-}
+// }
 
 // void handle_desktop(void* input_struct, struct tb_event* event);
 // void handle_text(void* input_struct, struct tb_event* event);

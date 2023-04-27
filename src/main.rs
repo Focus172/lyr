@@ -2,25 +2,24 @@ extern crate crossterm;
 extern crate tui;
 
 //mod draw;
-//mod inputs;
+mod inputs;
 //mod login;
-mod utils;
+// mod utils;
 mod config;
 // mod logger;
 //mod parser;
 mod screen;
 mod state;
 
+// use crossterm::event;
 use crossterm::{
     execute,
-    terminal::{enable_raw_mode, EnterAlternateScreen},
+    terminal::EnterAlternateScreen,
 };
-use std::{io, path::PathBuf, thread, time::Duration};
+use std::io::{self, stdin};
 use tui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph},
-    Frame, Terminal,
+    backend::CrosstermBackend,
+    Terminal,
 };
 use crate::state::State;
 use crate::config::Config;
@@ -41,84 +40,36 @@ enum End {
     Shutdown,
 }
 
-// enum Status {
-//     Ok,
-//     Info(String),
-//     Bail(String),
-// }
-//
-// impl Status {
-//     fn handle(&self, log: &mut Logger) {
-//         match self {
-//             Status::Ok => {}
-//             Status::Info(msg) => {
-//                 println!("{}", msg);
-//                 std::process::exit(0);
-//             }
-//             Status::Bail(msg) => {
-//                 log.log(msg);
-//                 println!("{}", msg);
-//                 std::process::exit(1);
-//             }
-//         }
-//     }
-// }
-//
-// fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
-//     while !args.is_empty() {
-//         let arg = args.remove(0);
-//         match arg.as_str() {
-//             "--config" | "-c" => conf.config_path = Some(PathBuf::from(args.remove(0))),
-//             "--help" | "-h" => return Status::Info(format!("{HELP_MSG}")),
-//             "--version" | "-v" => return Status::Info(format!("Ly version {GIT_VERSION_STRING}")),
-//             _ => return Status::Bail(format!("Unknown argument: {arg}")),
-//         }
-//     }
-//     Status::Ok
-// }
-
 fn main() -> Result<(), io::Error> {
     // let args = std::env::args().collect::<Vec<String>>();
 
     // let mut log = Logger::new();
-    // let mut config = Config::new();
-
+    
+    let mut config = Config::new();
     // parse_args(args, &mut config).handle(&mut log);
-
     // config.load().handle(&mut log);
 
-    // create 3 buffers with initial values from config
-    let buffers = [String::new(), String::new(), String::new()];
 
-    /*
-    let inputs = [
-        Input::new(&buffers[0], config.login_input),
-        Input::new(&buffers[1], config.password_input),
-        Input::new(&buffers[2], config.desktop_input),
-    ];
-    */
+    // lazy load desktop or something idk, this was in orignal and i dont know what it does
 
-    // lazy load desktop or something idk
 
     // start tui
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal:  = Terminal::new(backend)?;
-
+    let mut terminal = Terminal::new(backend)?;
 
     // These object are all owned by main who over sees them
     // the events tell main what is happening, it stores these 
     // temporaryly in state then tells the screen to render it
     let mut state = State::new();
 
-    let screen = Screen::new(ui);
-    let events = screen.events();
+    let (mut screen, events) = Screen::new(terminal, &mut config).expect("Could not initilize term");
+
     screen.draw();
 
-
     // Place the curser on the login field if there is no saved username, if there is, place the curser on the password field
-    screen.place_cursor(); // config.default_input
+    // screen.place_cursor(); // config.default_input
 
     // if config.animate { screen.animate_init(); }
 
@@ -161,7 +112,12 @@ fn main() -> Result<(), io::Error> {
             panic!("Some error happened");
         }
         
-        for event in screen.event {
+        for event in &events {
+            if event == "q" {
+                panic!();
+            }
+            let c = event.clone();
+            println!("event: {}", event)
             // do somethign and handle all those key presses
         }
 
@@ -254,19 +210,61 @@ fn main() -> Result<(), io::Error> {
 
     screen.close();
 
-    match state.end {
-        End::Boot => {
-            //execl("/bin/sh", "sh", "-c", config.boot_cmd, NULL);
-        }
-        End::Shutdown => {
-            //execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
-        }
-        End::Reboot => {
-            //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
-        }
-        _ => {}
-    };
+    // match state.end {
+    //     End::Boot => {
+    //         //execl("/bin/sh", "sh", "-c", config.boot_cmd, NULL);
+    //     }
+    //     End::Shutdown => {
+    //         //execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
+    //     }
+    //     End::Reboot => {
+    //         //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
+    //     }
+    //     _ => {}
+    // };
 
     Ok(())
 }
+
+
+// enum Status {
+//     Ok,
+//     Info(String),
+//     Bail(String),
+// }
+//
+// impl Status {
+//     fn handle(&self, log: &mut Logger) {
+//         match self {
+//             Status::Ok => {}
+//             Status::Info(msg) => {
+//                 println!("{}", msg);
+//                 std::process::exit(0);
+//             }
+//             Status::Bail(msg) => {
+//                 log.log(msg);
+//                 println!("{}", msg);
+//                 std::process::exit(1);
+//             }
+//         }
+//     }
+// }
+
+
+
+// fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
+//     while !args.is_empty() {
+//         let arg = args.remove(0);
+//         match arg.as_str() {
+//             "--config" | "-c" => conf.config_path = Some(PathBuf::from(args.remove(0))),
+//             "--help" | "-h" => return Status::Info(format!("{HELP_MSG}")),
+//             "--version" | "-v" => return Status::Info(format!("Ly version {GIT_VERSION_STRING}")),
+//             _ => return Status::Bail(format!("Unknown argument: {arg}")),
+//         }
+//     }
+//     Status::Ok
+// }
+
+
+
 

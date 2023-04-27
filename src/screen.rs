@@ -1,14 +1,24 @@
-use std::io;
+use std::{io::{self, Stdout}, sync::mpsc::Receiver, thread};
 
-use crossterm::terminal::enable_raw_mode;
-use tui::{Terminal, backend::CrosstermBackend};
+use crossterm::terminal;
+// use crossterm::{
+    // execute,
+    // terminal::{enable_raw_mode, EnterAlternateScreen},
+// };
+// use std::{io, path::PathBuf, thread, time::Duration};
+use tui::{
+    backend::CrosstermBackend,
+    // layout::{Constraint, Direction, Layout},
+    // widgets::{Block, Borders, Paragraph},
+    // Frame,
+    Terminal,
+};
 
 
 pub struct Screen {
-    term: termbox::Termbox,
+    term: Terminal<CrosstermBackend<Stdout>>,
     width: i32,
     height: i32,
-    input: Input,
 }
 
 struct Box {
@@ -48,62 +58,16 @@ struct Term {
 	// union anim_state astate;
 }
 
+use std::sync::mpsc;
 
-// fn ui<B: Backend>(f: &mut Frame<B>) {
-//     let chunks = Layout::default()
-//         .direction(Direction::Vertical)
-//         .margin(1)
-//         .constraints(
-//             [
-//                 Constraint::Percentage(10),
-//                 Constraint::Percentage(80),
-//                 Constraint::Percentage(10),
-//             ]
-//             .as_ref(),
-//         )
-//         .split(f.size());
-//     let block = Block::default().title("Binary").borders(Borders::ALL);
-//     f.render_widget(block, chunks[0]);
-//     let block = Block::default().title("Input").borders(Borders::ALL);
-//     f.render_widget(block, chunks[1]);
-//
-//     let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
-//         Block::default()
-//             .title("Block")
-//             .borders(Borders::ALL)
-//     );
-//
-//     f.render_widget(block, chunks[2]);
-// }
-
-
-// fn draw_init(struct term_buf* buf);
-// void draw_free(struct term_buf* buf);
-// void draw_box(struct term_buf* buf);
-
-// struct tb_cell* strn_cell(char* s, uint16_t len);
-// struct tb_cell* str_cell(char* s);
-
-// void draw_input(struct text* input);
-// void draw_input_mask(struct text* input);
-
-// void position_input(
-// 	struct term_buf* buf,
-// 	struct desktop* desktop,
-// 	struct text* login,
-// 	struct text* password);
-//
-// void animate_init(struct term_buf* buf);
-// void animate(struct term_buf* buf);
-// bool cascade(struct term_buf* buf, uint8_t* fails);
-
-// #define DOOM_STEPS 13
-
+use crate::{config::Config, inputs::Input};
 
 impl Screen {
-    fn new(term: Terminal<CrosstermBackend<io::Stdout>>, conf: &Config) -> Result<Screen, std::io::Error> {
-        term.clear()?;
-        enable_raw_mode()?;
+    pub fn new(mut terminal: Terminal<CrosstermBackend<io::Stdout>>, conf: &Config) -> Result<(Screen, Receiver<String>), std::io::Error> {
+        terminal.clear()?;
+        terminal::enable_raw_mode()?;
+
+        let (tx, rx) = mpsc::channel();
 
     // terminal.draw(|f| {
         // ui(f);
@@ -115,6 +79,11 @@ impl Screen {
         f.render_widget(block, size);
         */
     // })?;
+
+        let mut input = Input::new(std::io::stdin(), tx);
+        thread::spawn(move || {
+            input.read_events();
+        });
         // let buf = Buffer::new();
         // or
         // let buf = self.buf
@@ -127,10 +96,13 @@ impl Screen {
         // let max_len_login = lang.login.len();
         // let max_len_password = lang.password.len();
 
-	    let max_len = max(max_len_login, max_len_password);
+	    // let max_len = max(max_len_login, max_len_password);
 
-        let box_height = 7 + (2 * conf.margin_box_v); 
-	    let box_width = (2 * conf.margin_box_h) + (config.input_len + 1) + max_len;
+        // let box_height = 7 + (2 * conf.margin_box_v); 
+	    // let box_width = (2 * conf.margin_box_h) + (config.input_len + 1) + max_len;
+
+        let box_width = 24;
+        let box_height = 8;
 
 	    // buf->box_chars.left_up = 0x250c;
 	    // buf->box_chars.left_down = 0x2514;
@@ -141,10 +113,14 @@ impl Screen {
 	    // buf->box_chars.left = 0x2502;
 	    // buf->box_chars.right = 0x2502;
 
-        Screen { term: term, width: (), height: (), input: () }
+        Ok((Screen { term: terminal, width: box_width, height: box_width}, rx))
     }
 
-    fn (&mut self, conf: &Config) {    
+    pub fn draw(&mut self) {
+
+    }
+    pub fn close(&mut self) {
+        todo!("should free the memory")
     }
 }
 
@@ -1150,5 +1126,56 @@ impl Screen {
 // 	grid: Vec<Vec<MatrixDot>>,
 // 	updates: i32,
 // }
+
+
+// fn ui<B: Backend>(f: &mut Frame<B>) {
+//     let chunks = Layout::default()
+//         .direction(Direction::Vertical)
+//         .margin(1)
+//         .constraints(
+//             [
+//                 Constraint::Percentage(10),
+//                 Constraint::Percentage(80),
+//                 Constraint::Percentage(10),
+//             ]
+//             .as_ref(),
+//         )
+//         .split(f.size());
+//     let block = Block::default().title("Binary").borders(Borders::ALL);
+//     f.render_widget(block, chunks[0]);
+//     let block = Block::default().title("Input").borders(Borders::ALL);
+//     f.render_widget(block, chunks[1]);
+//
+//     let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
+//         Block::default()
+//             .title("Block")
+//             .borders(Borders::ALL)
+//     );
+//
+//     f.render_widget(block, chunks[2]);
+// }
+
+
+// fn draw_init(struct term_buf* buf);
+// void draw_free(struct term_buf* buf);
+// void draw_box(struct term_buf* buf);
+
+// struct tb_cell* strn_cell(char* s, uint16_t len);
+// struct tb_cell* str_cell(char* s);
+
+// void draw_input(struct text* input);
+// void draw_input_mask(struct text* input);
+
+// void position_input(
+// 	struct term_buf* buf,
+// 	struct desktop* desktop,
+// 	struct text* login,
+// 	struct text* password);
+//
+// void animate_init(struct term_buf* buf);
+// void animate(struct term_buf* buf);
+// bool cascade(struct term_buf* buf, uint8_t* fails);
+
+// #define DOOM_STEPS 13
 
 

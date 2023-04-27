@@ -21,20 +21,20 @@ pub struct Config {
 // 	//lang: Lang,
 // }
 //
-// impl Config {
-// 	pub fn new() -> Self {
-// 		Self {
-// 			config_path: Some(PathBuf::new()),
-// 			//desktop: Desktop {
-// 			//	display: String::new(),
-// 			//	command: String::new(),
-// 			//},
-// 			//login: String::new(),
-// 			//password: String::new(),
-// 			//lang: Lang::default(),
-// 		}
-// 	}
-//
+impl Config {
+	pub fn new() -> Self {
+		Self {
+			// config_path: Some(PathBuf::new()),
+			//desktop: Desktop {
+			//	display: String::new(),
+			//	command: String::new(),
+			//},
+			//login: String::new(),
+			//password: String::new(),
+			//lang: Lang::default(),
+		}
+	}
+}
 // 	pub fn load(&mut self) -> Status {
 // 		let long_live = PathBuf::from(DEFAULT_PATH);
 //
