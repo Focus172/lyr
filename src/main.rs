@@ -5,27 +5,23 @@ mod inputs;
 //mod login;
 // mod utils;
 mod config;
-// mod logger;
+mod logger;
 //mod parser;
 mod screen;
 mod state;
 
-use crossterm::event::{Event, KeyCode};
-// use crossterm::event;
+use crate::config::Config;
+use crate::logger::Logger;
+use crate::screen::Screen;
+use crate::state::State;
 use crossterm::{
+    event::{Event, KeyCode},
     execute,
     terminal::EnterAlternateScreen,
 };
 use std::io;
 use std::path::PathBuf;
-use tui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
-use crate::state::State;
-use crate::config::Config;
-// use crate::logger::Logger;
-use crate::screen::Screen;
+use tui::{backend::CrosstermBackend, Terminal};
 
 const GIT_VERSION_STRING: &str = "0.1.0";
 const HELP_MSG: &str = "Usage: lyr [OPTION]...
@@ -34,19 +30,16 @@ const HELP_MSG: &str = "Usage: lyr [OPTION]...
   -v, --version         display version and exit";
 const DEFAULT_PATH: &str = "/etc/lyr/config.ini";
 
-
 fn main() -> Result<(), io::Error> {
     let args = std::env::args().collect::<Vec<String>>();
 
-    // let mut log = Logger::new();
-    
+    let mut log = Logger::new();
+
     let mut config = Config::new();
     parse_args(args, &mut config); //.handle(&mut log);
-    // config.load().handle(&mut log);
-
+    config.load().handle(&mut log);
 
     // lazy load desktop or something idk, this was in orignal and i dont know what it does
-
 
     // start tui
     let mut stdout = io::stdout();
@@ -55,11 +48,12 @@ fn main() -> Result<(), io::Error> {
     let terminal = Terminal::new(backend)?;
 
     // These object are all owned by main who over sees them
-    // the events tell main what is happening, it stores these 
+    // the events tell main what is happening, it stores these
     // temporaryly in state then tells the screen to render it
     let mut state = State::new();
 
-    let (mut screen, events) = Screen::new(terminal, &mut config).expect("Could not initilize term");
+    let (mut screen, events) =
+        Screen::new(terminal, &mut config).expect("Could not initilize term");
 
     screen.draw();
 
@@ -87,12 +81,11 @@ fn main() -> Result<(), io::Error> {
                 //draw_desktop(&desktop);
                 //draw_input(&login);
                 //draw_input_mask(&password);
-                //update = config.animate;
+                // state.update = config.animate;
             } else {
                 //usleep(10000);
                 //update = cascade(&buf, &auth_fails);
             }
-
             screen.draw();
         }
 
@@ -102,154 +95,100 @@ fn main() -> Result<(), io::Error> {
         // 	error = tb_poll_event(&event);
         // }
 
-        if state.error != None {
-            // well go on do somethign about it
-            panic!("Some error happened");
-        }
-        
+        // if state.error != None {
+        // panic!("Some error happened");
+        // }
+
         for event in &events {
             match event {
                 Event::Key(kd) => {
                     match kd.code {
-                       KeyCode::Char('q') => panic!("ended"), 
-                       _ => {}
+                        KeyCode::F(1) => {
+                            state.shutdown = true;
+                            state.run = false;
+                        }
+                        KeyCode::F(2) => {
+                            state.reboot = true;
+                            state.run = false;
+                        }
+                        KeyCode::Down => {
+                            state.next_buffer();
+                            state.update = true;
+                        }
+                        KeyCode::Up => {
+                            state.prev_buffer();
+                            state.update = true;
+                        }
+                        KeyCode::Tab => {
+                            // if state.active_input == 0 {
+                            // cycle the selected desktop thing
+                            // } else {
+                            // go to the next feild without wrapping
+                            // }
+                        }
+                        KeyCode::Enter => {
+                            // save the two input feilds
+                            // attempt to authenticate
+
+                            // if auth auth
+                            // > increment fails by 1
+                            // > move input back to password
+                            // > display pam message on info line
+                            // > clear the password
+                            // > reset the authenticate
+
+                            // else
+                            // > set into line to logout message?
+                            // > load(&desktop, &login);
+                            // > system("tput cnorm");
+                        }
+                        KeyCode::Char('q') => panic!("ended"),
+                        KeyCode::Char(c) => {
+                            state.append_active(c);
+                            state.update = true
+                        }
+                        _ => {}
                     }
-                },
-                _ => {},
-            } 
-            // do somethign and handle all those key presses
-            //
+                }
+                _ => {}
+            }
         }
 
-        // 	if (event.type == TB_EVENT_KEY)
-        // 	{
-        // 		switch (event.key)
-        // 		{
-        // 		case TB_KEY_F1:
-        // 			shutdown = true;
-        // 			run = false;
-        // 			break;
-        // 		case TB_KEY_F2:
-        // 			reboot = true;
-        // 			run = false;
-        // 			break;
         // 		case TB_KEY_CTRL_C:
         // 			run = false;
-        // 			break;
-        // 		case TB_KEY_CTRL_U:
-        // 			if (active_input > 0)
-        // 			{
-        // 				input_text_clear(input_structs[active_input]);
-        // 				update = true;
-        // 			}
-        // 			break;
-        // 		case TB_KEY_ARROW_UP:
-        // 			if (active_input > 0)
-        // 			{
-        // 				--active_input;
-        // 				update = true;
-        // 			}
-        // 			break;
-        // 		case TB_KEY_ARROW_DOWN:
-        // 			if (active_input < 2)
-        // 			{
-        // 				++active_input;
-        // 				update = true;
-        // 			}
-        // 			break;
-        // 		case TB_KEY_TAB:
-        // 			++active_input;
-
-        // 			if (active_input > 2)
-        // 			{
-        // 				active_input = SESSION_SWITCH;
-        // 			}
-        // 			update = true;
-        // 			break;
-        // 		case TB_KEY_ENTER:
-        // 			save(&desktop, &login);
-        // 			auth(&desktop, &login, &password, &buf);
-        // 			update = true;
-
-        // 			if (dgn_catch())
-        // 			{
-        // 				++auth_fails;
-        // 				// move focus back to password input
-        // 				active_input = PASSWORD_INPUT;
-
-        // 				if (dgn_output_code() != DGN_PAM)
-        // 				{
-        // 					buf.info_line = dgn_output_log();
-        // 				}
-
-        // 				if (config.blank_password)
-        // 				{
-        // 					input_text_clear(&password);
-        // 				}
-
-        // 				dgn_reset();
-        // 			}
-        // 			else
-        // 			{
-        // 				buf.info_line = lang.logout;
-        // 			}
-
-        // 			load(&desktop, &login);
-        // 			system("tput cnorm");
-        // 			break;
-        // 		default:
-        // 			(*input_handles[active_input])(
-        // 				input_structs[active_input],
-        // 				&event);
-        // 			update = true;
-        // 			break;
-        // 		}
-        // 	}
-        // }
     }
 
     screen.close();
 
-    // match state.end {
-    //     End::Boot => {
-    //         //execl("/bin/sh", "sh", "-c", config.boot_cmd, NULL);
-    //     }
-    //     End::Shutdown => {
-    //         //execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
-    //     }
-    //     End::Reboot => {
-    //         //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
-    //     }
-    //     _ => {}
-    // };
+    //execl("/bin/sh", "sh", "-c", config.boot_cmd, NULL);
+    //execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
+    //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
 
     Ok(())
 }
 
-
-enum Status {
+pub enum Status {
     Ok,
     Info(String),
     Bail(String),
 }
 
 impl Status {
-    fn handle(&self) { //  log: &mut Logger) {
+    fn handle(&self, log: &mut Logger) {
         match self {
             Status::Ok => {}
             Status::Info(msg) => {
-                println!("{}", msg);
+                eprintln!("{}", msg);
                 std::process::exit(0);
             }
             Status::Bail(msg) => {
                 // log.log(msg);
-                println!("{}", msg);
+                eprintln!("{}", msg);
                 std::process::exit(1);
             }
         }
     }
 }
-
 
 fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
     while !args.is_empty() {
@@ -263,11 +202,3 @@ fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
     }
     Status::Ok
 }
-
-// enum End {
-//     Boot,
-//     Reboot,
-//     Shutdown,
-// }
-
-

@@ -593,7 +593,6 @@ void auth(
 	}
 }
 
-
 enum DGN_ERROR {
 	DGN_OK, // do not remove
 	DGN_NULL,

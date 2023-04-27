@@ -1,19 +1,24 @@
-use std::{io::{self, Stdout}, sync::mpsc::Receiver, thread};
+use std::{
+    io::{self, Stdout},
+    sync::mpsc::Receiver,
+    thread,
+};
 
-use crossterm::{terminal, event::Event};
+use crossterm::{event::Event, terminal};
 // use crossterm::{
-    // execute,
-    // terminal::{enable_raw_mode, EnterAlternateScreen},
+// execute,
+// terminal::{enable_raw_mode, EnterAlternateScreen},
 // };
 // use std::{io, path::PathBuf, thread, time::Duration};
 use tui::{
     backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    widgets::{Block, Borders, Paragraph},
     // layout::{Constraint, Direction, Layout},
     // widgets::{Block, Borders, Paragraph},
     // Frame,
     Terminal,
 };
-
 
 pub struct Screen {
     term: Terminal<CrosstermBackend<Stdout>>,
@@ -21,16 +26,16 @@ pub struct Screen {
     height: i32,
 }
 
-struct Box {
-	left_up: u32,
-	// uint32_t left_down;
-	// uint32_t right_up;
-	// uint32_t right_down;
-	// uint32_t top;
-	// uint32_t bot;
-	// uint32_t left;
-	// uint32_t right;
-}
+// struct Box {
+// left_up: u32,
+// uint32_t left_down;
+// uint32_t right_up;
+// uint32_t right_down;
+// uint32_t top;
+// uint32_t bot;
+// uint32_t left;
+// uint32_t right;
+// }
 
 // struct DoomState {
 // 	buf: String,
@@ -42,20 +47,20 @@ struct Box {
 // }
 
 struct Term {
-	// uint16_t width;
-	// uint16_t height;
-	// uint16_t init_width;
-	// uint16_t init_height;
-	//
-	// struct box box_chars;
-	// char* info_line;
-	// uint16_t labels_max_len;
-	// uint16_t box_x;
-	// uint16_t box_y;
-	// uint16_t box_width;
-	// uint16_t box_height;
+    // uint16_t width;
+    // uint16_t height;
+    // uint16_t init_width;
+    // uint16_t init_height;
+    //
+    // struct box box_chars;
+    // char* info_line;
+    // uint16_t labels_max_len;
+    // uint16_t box_x;
+    // uint16_t box_y;
+    // uint16_t box_width;
+    // uint16_t box_height;
 
-	// union anim_state astate;
+    // union anim_state astate;
 }
 
 use std::sync::mpsc;
@@ -63,62 +68,94 @@ use std::sync::mpsc;
 use crate::{config::Config, inputs::Input};
 
 impl Screen {
-    pub fn new(mut terminal: Terminal<CrosstermBackend<io::Stdout>>, conf: &Config) -> Result<(Screen, Receiver<Event>), std::io::Error> {
+    pub fn new(
+        mut terminal: Terminal<CrosstermBackend<io::Stdout>>,
+        conf: &Config,
+    ) -> Result<(Screen, Receiver<Event>), std::io::Error> {
+        
         terminal.clear()?;
         terminal::enable_raw_mode()?;
 
         let (tx, rx) = mpsc::channel();
 
-    // terminal.draw(|f| {
-        // ui(f);
-        /*
-        let size = f.size();
-        let block = Block::default()
-            .title("Block")
-            .borders(Borders::ALL);
-        f.render_widget(block, size);
-        */
-    // })?;
+        terminal.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints(
+                [
+                Constraint::Percentage(10),
+                Constraint::Percentage(80),
+                Constraint::Percentage(10),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+    let block = Block::default().title("Binary").borders(Borders::ALL);
+    f.render_widget(block, chunks[0]);
+    let block = Block::default().title("Input").borders(Borders::ALL);
+    f.render_widget(block, chunks[1]);
 
-        let mut input = Input::new(std::io::stdin(), tx);
-        thread::spawn(move || {
-            input.read_events();
-        });
+    let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
+        Block::default()
+            .title("Block")
+            .borders(Borders::ALL)
+    );
+
+    f.render_widget(block, chunks[2]);
+
+     // let size = f.size();
+     //    let block = Block::default()
+     //        .title("Block")
+     //        .borders(Borders::ALL);
+     //    f.render_widget(block, size);
+
+        })?;
+
+        // start reading events asyncronosly
+        let input = Input::new(std::io::stdin(), tx);
+        thread::spawn(move || input.read_events());
+
         // let buf = Buffer::new();
         // or
         // let buf = self.buf
-        
+
         // let buf.height = self.term_buf.height
         // let buf.height = self.term_buf.height
-	
+
         // hostname(&buf->info_line);
 
         // let max_len_login = lang.login.len();
         // let max_len_password = lang.password.len();
 
-	    // let max_len = max(max_len_login, max_len_password);
+        // let max_len = max(max_len_login, max_len_password);
 
-        // let box_height = 7 + (2 * conf.margin_box_v); 
-	    // let box_width = (2 * conf.margin_box_h) + (config.input_len + 1) + max_len;
+        // let box_height = 7 + (2 * conf.margin_box_v);
+        // let box_width = (2 * conf.margin_box_h) + (config.input_len + 1) + max_len;
 
         let box_width = 24;
         let box_height = 8;
 
-	    // buf->box_chars.left_up = 0x250c;
-	    // buf->box_chars.left_down = 0x2514;
-	    // buf->box_chars.right_up = 0x2510;
-	    // buf->box_chars.right_down = 0x2518;
-	    // buf->box_chars.top = 0x2500;
-	    // buf->box_chars.bot = 0x2500;
-	    // buf->box_chars.left = 0x2502;
-	    // buf->box_chars.right = 0x2502;
+        // buf->box_chars.left_up = 0x250c;
+        // buf->box_chars.left_down = 0x2514;
+        // buf->box_chars.right_up = 0x2510;
+        // buf->box_chars.right_down = 0x2518;
+        // buf->box_chars.top = 0x2500;
+        // buf->box_chars.bot = 0x2500;
+        // buf->box_chars.left = 0x2502;
+        // buf->box_chars.right = 0x2502;
 
-        Ok((Screen { term: terminal, width: box_width, height: box_height}, rx))
+        Ok((
+            Screen {
+                term: terminal,
+                width: box_width,
+                height: box_height,
+            },
+            rx,
+        ))
     }
 
-    pub fn draw(&mut self) {
-
-    }
+    pub fn draw(&mut self) {}
     pub fn close(&mut self) {
         todo!("should free the memory")
     }
@@ -661,10 +698,6 @@ impl Screen {
 // 	free(buf->astate.matrix);
 // }
 
-
-
-
-
 // void animate_init(struct term_buf* buf)
 // {
 // 	if (config.animate)
@@ -917,7 +950,7 @@ impl Screen {
 // 			}
 //
 // 			c_under = buf[(i + 1) * width + k].ch;
-// 			
+//
 // 			if (!isspace(c_under))
 // 			{
 // 				continue;
@@ -938,7 +971,7 @@ impl Screen {
 // 		}
 // 	}
 //
-// 	// stop force-updating 
+// 	// stop force-updating
 // 	if (!changes)
 // 	{
 // 		sleep(7);
@@ -1127,35 +1160,6 @@ impl Screen {
 // 	updates: i32,
 // }
 
-
-// fn ui<B: Backend>(f: &mut Frame<B>) {
-//     let chunks = Layout::default()
-//         .direction(Direction::Vertical)
-//         .margin(1)
-//         .constraints(
-//             [
-//                 Constraint::Percentage(10),
-//                 Constraint::Percentage(80),
-//                 Constraint::Percentage(10),
-//             ]
-//             .as_ref(),
-//         )
-//         .split(f.size());
-//     let block = Block::default().title("Binary").borders(Borders::ALL);
-//     f.render_widget(block, chunks[0]);
-//     let block = Block::default().title("Input").borders(Borders::ALL);
-//     f.render_widget(block, chunks[1]);
-//
-//     let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
-//         Block::default()
-//             .title("Block")
-//             .borders(Borders::ALL)
-//     );
-//
-//     f.render_widget(block, chunks[2]);
-// }
-
-
 // fn draw_init(struct term_buf* buf);
 // void draw_free(struct term_buf* buf);
 // void draw_box(struct term_buf* buf);
@@ -1177,5 +1181,3 @@ impl Screen {
 // bool cascade(struct term_buf* buf, uint8_t* fails);
 
 // #define DOOM_STEPS 13
-
-

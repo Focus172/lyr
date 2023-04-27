@@ -1,27 +1,26 @@
-use std::{sync::mpsc::Sender, io::Stdin};
-
+use std::{io::Stdin, sync::mpsc::Sender};
 
 pub struct Input {
     stdin: Stdin,
     port: Sender<Event>,
     // buffer: String,
-	//config: InputConfig,
+    //config: InputConfig,
 }
 
 use crossterm::event::{read, Event};
 impl Input {
-	pub fn new(input: Stdin, msg: Sender<Event>) -> Input {
-		Input {
+    pub fn new(input: Stdin, msg: Sender<Event>) -> Input {
+        Input {
             stdin: input,
             port: msg,
-		}
-	}
+        }
+    }
 
     pub fn read_events(&self) {
         loop {
             self.port.send(read().unwrap()).unwrap();
         }
-    } 
+    }
 }
 
 // use std::io::{self, Write};
@@ -35,28 +34,28 @@ impl Input {
 // }
 
 struct Text {
-	// char* text;
-	// char* end;
-	// int64_t len;
-	// char* cur;
-	// char* visible_start;
-	// uint16_t visible_len;
+    // char* text;
+    // char* end;
+    // int64_t len;
+    // char* cur;
+    // char* visible_start;
+    // uint16_t visible_len;
 
-	// uint16_t x;
-	// uint16_t y;
+    // uint16_t x;
+    // uint16_t y;
 }
 
 // struct Desktop {
-	// char** list;
-    // char** list_simple;
-	// char** cmd;
-	// display_server: DisplayServer,
+// char** list;
+// char** list_simple;
+// char** cmd;
+// display_server: DisplayServer,
 
-	// uint16_t cur;
-	// uint16_t len;
-	// uint16_t visible_len;
-	// uint16_t x;
-	// uint16_t y;
+// uint16_t cur;
+// uint16_t len;
+// uint16_t visible_len;
+// uint16_t x;
+// uint16_t y;
 // }
 
 // void handle_desktop(void* input_struct, struct tb_event* event);
