@@ -3,24 +3,23 @@ use std::{sync::mpsc::Sender, io::Stdin};
 
 pub struct Input {
     stdin: Stdin,
-    port: Sender<String>,
+    port: Sender<Event>,
     // buffer: String,
 	//config: InputConfig,
 }
 
+use crossterm::event::{read, Event};
 impl Input {
-	pub fn new(input: Stdin, msg: Sender<String>) -> Input {
+	pub fn new(input: Stdin, msg: Sender<Event>) -> Input {
 		Input {
             stdin: input,
             port: msg,
 		}
 	}
 
-    pub fn read_events(&mut self) {
+    pub fn read_events(&self) {
         loop {
-            let mut buffer = String::new();
-            self.stdin.read_line(&mut buffer);
-            self.port.send(buffer).unwrap();
+            self.port.send(read().unwrap()).unwrap();
         }
     } 
 }

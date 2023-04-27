@@ -1,7 +1,6 @@
 extern crate crossterm;
 extern crate tui;
 
-//mod draw;
 mod inputs;
 //mod login;
 // mod utils;
@@ -11,12 +10,14 @@ mod config;
 mod screen;
 mod state;
 
+use crossterm::event::{Event, KeyCode};
 // use crossterm::event;
 use crossterm::{
     execute,
     terminal::EnterAlternateScreen,
 };
-use std::io::{self, stdin};
+use std::io;
+use std::path::PathBuf;
 use tui::{
     backend::CrosstermBackend,
     Terminal,
@@ -26,7 +27,6 @@ use crate::config::Config;
 // use crate::logger::Logger;
 use crate::screen::Screen;
 
-const ARG_COUNT: u8 = 7;
 const GIT_VERSION_STRING: &str = "0.1.0";
 const HELP_MSG: &str = "Usage: lyr [OPTION]...
   -c, --config=FILE     use FILE as config file
@@ -34,19 +34,14 @@ const HELP_MSG: &str = "Usage: lyr [OPTION]...
   -v, --version         display version and exit";
 const DEFAULT_PATH: &str = "/etc/lyr/config.ini";
 
-enum End {
-    Boot,
-    Reboot,
-    Shutdown,
-}
 
 fn main() -> Result<(), io::Error> {
-    // let args = std::env::args().collect::<Vec<String>>();
+    let args = std::env::args().collect::<Vec<String>>();
 
     // let mut log = Logger::new();
     
     let mut config = Config::new();
-    // parse_args(args, &mut config).handle(&mut log);
+    parse_args(args, &mut config); //.handle(&mut log);
     // config.load().handle(&mut log);
 
 
@@ -57,7 +52,7 @@ fn main() -> Result<(), io::Error> {
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let terminal = Terminal::new(backend)?;
 
     // These object are all owned by main who over sees them
     // the events tell main what is happening, it stores these 
@@ -113,12 +108,17 @@ fn main() -> Result<(), io::Error> {
         }
         
         for event in &events {
-            if event == "q" {
-                panic!();
-            }
-            let c = event.clone();
-            println!("event: {}", event)
+            match event {
+                Event::Key(kd) => {
+                    match kd.code {
+                       KeyCode::Char('q') => panic!("ended"), 
+                       _ => {}
+                    }
+                },
+                _ => {},
+            } 
             // do somethign and handle all those key presses
+            //
         }
 
         // 	if (event.type == TB_EVENT_KEY)
@@ -227,44 +227,47 @@ fn main() -> Result<(), io::Error> {
 }
 
 
-// enum Status {
-//     Ok,
-//     Info(String),
-//     Bail(String),
+enum Status {
+    Ok,
+    Info(String),
+    Bail(String),
+}
+
+impl Status {
+    fn handle(&self) { //  log: &mut Logger) {
+        match self {
+            Status::Ok => {}
+            Status::Info(msg) => {
+                println!("{}", msg);
+                std::process::exit(0);
+            }
+            Status::Bail(msg) => {
+                // log.log(msg);
+                println!("{}", msg);
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
+
+fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
+    while !args.is_empty() {
+        let arg = args.remove(0);
+        match arg.as_str() {
+            "--config" | "-c" => conf.config_path = Some(PathBuf::from(args.remove(0))),
+            "--help" | "-h" => return Status::Info(format!("{HELP_MSG}")),
+            "--version" | "-v" => return Status::Info(format!("Ly version {GIT_VERSION_STRING}")),
+            _ => return Status::Bail(format!("Unknown argument: {arg}")),
+        }
+    }
+    Status::Ok
+}
+
+// enum End {
+//     Boot,
+//     Reboot,
+//     Shutdown,
 // }
-//
-// impl Status {
-//     fn handle(&self, log: &mut Logger) {
-//         match self {
-//             Status::Ok => {}
-//             Status::Info(msg) => {
-//                 println!("{}", msg);
-//                 std::process::exit(0);
-//             }
-//             Status::Bail(msg) => {
-//                 log.log(msg);
-//                 println!("{}", msg);
-//                 std::process::exit(1);
-//             }
-//         }
-//     }
-// }
-
-
-
-// fn parse_args(mut args: Vec<String>, conf: &mut Config) -> Status {
-//     while !args.is_empty() {
-//         let arg = args.remove(0);
-//         match arg.as_str() {
-//             "--config" | "-c" => conf.config_path = Some(PathBuf::from(args.remove(0))),
-//             "--help" | "-h" => return Status::Info(format!("{HELP_MSG}")),
-//             "--version" | "-v" => return Status::Info(format!("Ly version {GIT_VERSION_STRING}")),
-//             _ => return Status::Bail(format!("Unknown argument: {arg}")),
-//         }
-//     }
-//     Status::Ok
-// }
-
-
 
 

@@ -1,6 +1,6 @@
 use std::{io::{self, Stdout}, sync::mpsc::Receiver, thread};
 
-use crossterm::terminal;
+use crossterm::{terminal, event::Event};
 // use crossterm::{
     // execute,
     // terminal::{enable_raw_mode, EnterAlternateScreen},
@@ -63,7 +63,7 @@ use std::sync::mpsc;
 use crate::{config::Config, inputs::Input};
 
 impl Screen {
-    pub fn new(mut terminal: Terminal<CrosstermBackend<io::Stdout>>, conf: &Config) -> Result<(Screen, Receiver<String>), std::io::Error> {
+    pub fn new(mut terminal: Terminal<CrosstermBackend<io::Stdout>>, conf: &Config) -> Result<(Screen, Receiver<Event>), std::io::Error> {
         terminal.clear()?;
         terminal::enable_raw_mode()?;
 
@@ -113,7 +113,7 @@ impl Screen {
 	    // buf->box_chars.left = 0x2502;
 	    // buf->box_chars.right = 0x2502;
 
-        Ok((Screen { term: terminal, width: box_width, height: box_width}, rx))
+        Ok((Screen { term: terminal, width: box_width, height: box_height}, rx))
     }
 
     pub fn draw(&mut self) {
