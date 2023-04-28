@@ -10,13 +10,8 @@ mod config;
 use crate::config::Config;
 use crate::screen::Screen;
 use crate::state::State;
-use crossterm::{
-    event::{Event, KeyCode},
-    execute,
-    terminal::EnterAlternateScreen,
-};
+use crossterm::event::{Event, KeyCode};
 use std::{io, process};
-use tui::{backend::CrosstermBackend, Terminal};
 
 const DEFAULT_PATH: &str = "/etc/lyr/config.ini";
 
@@ -27,18 +22,11 @@ fn main() -> Result<(), io::Error> {
 
     // lazy load desktop or something idk, this was in orignal and i dont know what it does
 
-    // start tui
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stdout);
-    let terminal = Terminal::new(backend)?;
-
     // These object are all owned by main who over sees them
     // the events tell main what is happening, it stores these
     // temporaryly in state then tells the screen to render it
     let mut state = State::new();
-
-    let (mut screen, events) = Screen::new(terminal, &config)?;
+    let (mut screen, events) = Screen::new(&config)?;
 
     // if config.animate { screen.animate_init(); }
 
@@ -106,7 +94,10 @@ fn main() -> Result<(), io::Error> {
                     // > load(&desktop, &login);
                     // > system("tput cnorm");
                 }
-                KeyCode::Char('q') => panic!("Quit"), 
+                KeyCode::Char('q') => {
+                    state.run = false
+                    // panic!("Quit"); 
+                },
                 KeyCode::Char(c) => {
                     state.append_active(c);
                     state.update = true

@@ -1,4 +1,2 @@
 /target
-res
-obj
-tui/target
+Cargo.lock

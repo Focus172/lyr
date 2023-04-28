@@ -4,7 +4,7 @@ use std::{
     thread,
 };
 
-use crossterm::{event::Event, terminal};
+use crossterm::{event::{Event, EnableMouseCapture, DisableMouseCapture}, terminal::{self, enable_raw_mode, EnterAlternateScreen, disable_raw_mode, LeaveAlternateScreen}};
 // use crossterm::{
 // execute,
 // terminal::{enable_raw_mode, EnterAlternateScreen},
@@ -17,7 +17,7 @@ use tui::{
     // layout::{Constraint, Direction, Layout},
     // widgets::{Block, Borders, Paragraph},
     // Frame,
-    Terminal,
+    Terminal, text::{Span, Text, Spans}, style::{Style, Modifier},
 };
 
 pub struct Screen {
@@ -68,21 +68,16 @@ use std::sync::mpsc;
 use crate::{config::Config, input::Input, state::State};
 
 impl Screen {
-    pub fn new(
-        mut terminal: Terminal<CrosstermBackend<io::Stdout>>,
-        conf: &Config,
-    ) -> Result<(Screen, Receiver<Event>), std::io::Error> {
+    pub fn new(conf: &Config) -> Result<(Screen, Receiver<Event>), std::io::Error> {
         
-//     // setup terminal
-//     enable_raw_mode()?;
-//     let mut stdout = io::stdout();
-//     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-//     let backend = CrosstermBackend::new(stdout);
-//     let mut terminal = Terminal::new(backend)?;
-//
+        // setup terminal
+        enable_raw_mode()?;
+        let mut stdout = io::stdout();
+        crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
 
         terminal.clear()?;
-        terminal::enable_raw_mode()?;
 
         let (tx, rx) = mpsc::channel();
 
@@ -136,25 +131,44 @@ impl Screen {
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
-                    Constraint::Percentage(10),
-                    Constraint::Percentage(80),
-                    Constraint::Percentage(10),
-                    ]
-                    .as_ref()
-                )
+                    Constraint::Length(1), // status bar
+                    Constraint::Length(1), // current os
+                    Constraint::Length(3), // username
+                    Constraint::Length(3), // password
+                    Constraint::Min(1),
+                    // Constraint::Percentage(10),
+                ].as_ref())
                 .split(f.size());
 
-            let block = Block::default().title("Binary").borders(Borders::ALL);
-            f.render_widget(block, chunks[0]);
-            let block = Block::default().title("Input").borders(Borders::ALL);
-            f.render_widget(block, chunks[1]);
 
-            let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
-            Block::default()
-                .title("Block")
-                .borders(Borders::ALL));
+            // (msg, style)
 
-            f.render_widget(block, chunks[2]);
+            let text = Text::from(Spans::from(vec![
+                Span::raw("Reboot: "),
+                Span::styled("F1", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(", Shutdown: "),
+                Span::styled("F2", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(", Capslock: todo!."),
+            ]));
+
+            // text.patch_style(Style::default().add_modifier(Modifier::RAPID_BLINK));
+
+            let help_message = Paragraph::new(text);
+            f.render_widget(help_message, chunks[0]);
+
+            let desktop = Paragraph::new("this is where the current boot os would go");
+            f.render_widget(desktop, chunks[1]);
+
+            let name = Block::default().title("Username").borders(Borders::ALL);
+            f.render_widget(name, chunks[2]);
+
+            let pass = Block::default().title("Password").borders(Borders::ALL);
+            f.render_widget(pass, chunks[3]);
+
+            // let _block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
+            // Block::default()
+            //     .title("Block")
+            //     .borders(Borders::ALL));
 
             // let size = f.size();
             //    let block = Block::default()
@@ -164,46 +178,8 @@ impl Screen {
 
         })?;
 
-//     let chunks = Layout::default()
-//         .direction(Direction::Vertical)
-//         .margin(2)
-//         .constraints(
-//             [
-//                 Constraint::Length(1),
-//                 Constraint::Length(3),
-//                 Constraint::Min(1),
-//             ]
-//             .as_ref(),
-//         )
-//         .split(f.size());
-//
-//     let (msg, style) = match app.input_mode {
-//         InputMode::Normal => (
-//             vec![
-//                 Span::raw("Press "),
-//                 Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
-//                 Span::raw(" to exit, "),
-//                 Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
-//                 Span::raw(" to start editing."),
-//             ],
-//             Style::default().add_modifier(Modifier::RAPID_BLINK),
-//         ),
-//         InputMode::Editing => (
-//             vec![
-//                 Span::raw("Press "),
-//                 Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
-//                 Span::raw(" to stop editing, "),
-//                 Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
-//                 Span::raw(" to record the message"),
-//             ],
-//             Style::default(),
-//         ),
-//     };
-//     let mut text = Text::from(Spans::from(msg));
-//     text.patch_style(style);
-//     let help_message = Paragraph::new(text);
-//     f.render_widget(help_message, chunks[0]);
-//
+
+
 //     let input = Paragraph::new(app.input.as_ref())
 //         .style(InputMode::Editing => Style::default().fg(Color::Yellow))
 //         .block(Block::default().borders(Borders::ALL).title("Input"));
@@ -248,15 +224,16 @@ impl Screen {
 // }
 
     }
-    pub fn close(&mut self) {
+    pub fn close(&mut self) -> Result<(), std::io::Error> {
         // restore terminal
-        // disable_raw_mode()?;
-        // execute!(
-        //     terminal.backend_mut(),
-        //     LeaveAlternateScreen,
-        //     DisableMouseCapture
-        // )?;
-        // terminal.show_cursor()?;
+        disable_raw_mode()?;
+        crossterm::execute!(
+            self.term.backend_mut(),
+            LeaveAlternateScreen,
+            DisableMouseCapture
+        )?;
+        self.term.show_cursor()?;
+        Ok(())
     }
 }
 
