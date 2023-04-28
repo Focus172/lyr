@@ -8,7 +8,7 @@ pub struct Config {
     // pub shutdown_cmd: String,
     // pub reboot_cmd: String,
     rounded: bool,
-    show_fkeys: bool,
+    pub show_fkeys: bool,
     // show_clock: bool,
     
     user: String,

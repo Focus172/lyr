@@ -4,34 +4,38 @@ extern crate serde;
 
 mod input;
 //mod login;
+mod config;
 mod screen;
 mod state;
-mod config;
+mod log;
 
 use crate::config::Config;
 use crate::screen::Screen;
 use crate::state::State;
+use crate::log::Logger;
 use crossterm::event::{Event, KeyCode};
-use std::{io::{self, Write}, process, fs::File, time::Duration};
+use std::{
+    io,
+    process,
+    time::Duration,
+};
 
 fn main() -> Result<(), io::Error> {
-    // let mut log = Logger::new();
+    let mut log = Logger::new();
 
     let config = Config::new();
 
-    // temp file for logging
-    let mut file = File::create("/home/focus/code/lyr/temp.log")?;
-    file.write("Started logging\n".as_bytes())?;
+    log.log("Starting lyr\n")?;
 
-    
     // lazy load desktop or something idk, this was in orignal and i dont know what it does
 
-    // These object are all owned by main who over sees them
-    // the events tell main what is happening, it stores these
-    // temporaryly in state then tells the screen to render it
+    // state repersent the current state of the program
+    // screen is passed this to render
+    // main uses the events to update state
     let mut state = State::new();
     let (mut screen, events) = Screen::new(&config)?;
 
+    // some memory allocation stuff
     // if config.animate { screen.animate_init(); }
 
     while state.run {
@@ -45,40 +49,31 @@ fn main() -> Result<(), io::Error> {
             // Place the curser on the login field if there is no saved username
             // if there is, place the curser on the password field
             state.renders += 1;
-            file.write(format!("remder: {}\n", state.renders).as_bytes())?;
-            screen.draw(&state, &mut file)?;
+            log.log(format!("Starting render: {}\n", state.renders).as_str())?;
+            screen.draw(&state)?;
+            state.update = false;
             // state.update = config.animate;
         }
-    
 
-        // if (config.animate) {
-        // 	error = tb_peek_event(&event, config.min_refresh_delta);
-        // }
-        
-        // if state.error != None {
-        // panic!("Some error happened");
-        // }
+        match state.error {
+            Some(_) => panic!("Error happened: {}", state.error.unwrap()),
+            None => {},
+        }
 
-        file.write("\n Events: ".as_bytes())?;
-        let event = events.recv_timeout(Duration::from_millis(50));
-
-        match event {
-            Ok(event) => {
-        
-            file.write(format!("\n - {:?}", event).as_bytes())?;
-            match event {
+        // this lands at about 60 fps for the animation
+        if let Ok(event) = events.recv_timeout(Duration::from_millis(15)) { match event {
             Event::Key(kd) => { match kd.code {
                 KeyCode::F(1) => {
                     state.shutdown = true;
-                    // state.run = false;
+                    state.run = false;
                 }
                 KeyCode::F(2) => {
                     state.reboot = true;
-                    // state.run = false;
+                    state.run = false;
                 }
                 KeyCode::Down => {
                     state.next_buffer();
-                   state.update = true;
+                    state.update = true;
                 }
                 KeyCode::Up => {
                     state.prev_buffer();
@@ -105,34 +100,27 @@ fn main() -> Result<(), io::Error> {
                     // > system("tput cnorm");
                 }
                 KeyCode::Char('q') => {
-                    // state.run = false
-                    panic!("Quit"); 
-                },
+                    state.run = false; // HACK for debugging only
+                }
                 KeyCode::Char(c) => {
                     state.append_active(c);
                     state.update = true
-                },
+                }
                 // KeyCode::Backspace => {
                 //     app.input.pop();
                 // }
                 // TODO have a key that manually updates the screen
+                // TODO have a key that manually exits the program 
                 _ => {}
-            }}
+            }},
             Event::Mouse(_pos) => {},
-            Event::Resize(_x, _y) => {
-                state.update = true
-            },
+            Event::Resize(_x, _y) => state.update = true,
             Event::Paste(_s) => {},
             Event::FocusLost => {}, // this seems like a security vuln somehow
             Event::FocusGained => {},
-        }
-            }
-            Err(_) => {},
-        }
-        // 		case TB_KEY_CTRL_C:
-        // 			run = false;
+        }}
 
-        file.write("finished getting keys".as_bytes())?;
+        // log.log("Finished getting keys\n")?;
     }
 
     screen.close()?;
@@ -142,7 +130,7 @@ fn main() -> Result<(), io::Error> {
         println!("shutting down...");
         process::exit(0)
     }
-    
+
     if state.reboot {
         //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
         println!("rebooting...");
@@ -153,7 +141,6 @@ fn main() -> Result<(), io::Error> {
 
     Ok(())
 }
-
 
 // pub enum Status {
 //     Ok,
@@ -177,4 +164,3 @@ fn main() -> Result<(), io::Error> {
 //         }
 //     }
 // }
-

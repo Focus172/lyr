@@ -1,17 +1,17 @@
 use std::{
-    io::{self, Stdout, Write},
+    io::{self, Stdout},
     sync::mpsc::{self, Receiver},
-    thread, fs::File,
+    thread,
 };
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, Event},
+    event::Event,
     terminal::{
         disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
     },
 };
 use tui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Block, Borders, Paragraph},
@@ -24,6 +24,9 @@ use crate::{config::Config, input::Input, state::State};
 
 pub struct Screen {
     term: Terminal<CrosstermBackend<Stdout>>,
+    // curser: (u16, u16),
+    // current_box: Rect,
+    show_help: bool,
 }
 
 impl Screen {
@@ -73,15 +76,22 @@ impl Screen {
         Ok((
             Screen {
                 term: terminal,
+                // curser: (0, 0),
+                // current_box: Rect::new(0, 0, 0, 0),
+                // use this as a way to only recalculate the rect when the terminal is resized
+                // as this is in a tty this is a meaningfull assumption
+                show_help: conf.show_fkeys,
             },
             rx,
         ))
     }
 
     // TODO this should get the currently displayed text from the main thread
-    pub fn draw(&mut self, state: &State, log: &mut File) -> Result<(), std::io::Error> {
+    pub fn draw(&mut self, state: &State) -> Result<(), std::io::Error> {
 
-        log.write("starting write".as_bytes())?;
+// log: &mut File)
+
+        // log.write("starting write".as_bytes())?;
 
         self.term.draw(|f| {
             let chunks = Layout::default()
@@ -121,24 +131,24 @@ impl Screen {
                 )
                 .split(div[1])[1];
                
-            log.write("created spaces".as_bytes()).unwrap();
 
-            let text = Text::from(Spans::from(vec![
-                Span::raw("Reboot: "),
-                Span::styled("F1", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(", Shutdown: "),
-                Span::styled("F2", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(", Capslock: todo!."),
-                Span::raw("Renders: "),
-                Span::raw(state.renders.to_string()),
-            ]));
+            if self.show_help {
+                let text = Text::from(Spans::from(vec![
+                    Span::raw("Reboot: "),
+                    Span::styled("F1", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(", Shutdown: "),
+                    Span::styled("F2", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(", Capslock: todo!."),
+                    Span::raw("Renders: "),
+                    Span::raw(state.renders.to_string()),
+                ]));
 
-            // text.patch_style(Style::default().add_modifier(Modifier::RAPID_BLINK));
+                // text.patch_style(Style::default().add_modifier(Modifier::RAPID_BLINK));
 
-            let help_message = Paragraph::new(text);
-            f.render_widget(help_message, status_line);
+                let help_message = Paragraph::new(text);
+                f.render_widget(help_message, status_line);
+            }
 
-            log.write("Wrote bar".as_bytes()).unwrap();
 
             // let desktop = Paragraph::new("this is where the current boot os would go");
             // f.render_widget(desktop, chunks[1]);
@@ -147,7 +157,7 @@ impl Screen {
             f.render_widget(name, main_box);
 
 
-            log.write("Wrote box".as_bytes()).unwrap();
+            // log.write("Wrote box".as_bytes()).unwrap();
 
             // let pass = Block::default().title("Password").borders(Borders::ALL);
             // f.render_widget(pass, chunks[3]);
@@ -190,7 +200,7 @@ impl Screen {
         })?;
 
 
-        log.write("finished write".as_bytes()).unwrap();
+        // log.write("finished write".as_bytes()).unwrap();
 
         //     let input = Paragraph::new(app.input.as_ref())
         //         .style(InputMode::Editing => Style::default().fg(Color::Yellow))

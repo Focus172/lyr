@@ -1,12 +1,11 @@
-use std::{io::Stdin, sync::mpsc::Sender};
+/// A simple threded input handler for crossterm events.
+
+use std::sync::mpsc::Sender;
+use crossterm::event::{read, Event};
 
 pub struct Input {
     port: Sender<Event>,
-    // buffer: String,
-    //config: InputConfig,
 }
-
-use crossterm::event::{read, Event};
 
 impl Input {
     pub fn new(msg: Sender<Event>) -> Input {
@@ -30,9 +29,6 @@ impl Input {
 }
 
 ///////////////////////////////////////// OLD CODE /////////////////////////////////////////
-
-// use std::io::{self, Write};
-// use termion::event::Key;
 
 // enum DisplayServer {
 //     DS_WAYLAND,
