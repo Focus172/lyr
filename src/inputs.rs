@@ -23,6 +23,8 @@ impl Input {
     }
 }
 
+///////////////////////////////////////// OLD CODE /////////////////////////////////////////
+
 // use std::io::{self, Write};
 // use termion::event::Key;
 
@@ -33,7 +35,7 @@ impl Input {
 //     DS_XORG
 // }
 
-struct Text {
+// struct Text {
     // char* text;
     // char* end;
     // int64_t len;
@@ -43,7 +45,7 @@ struct Text {
 
     // uint16_t x;
     // uint16_t y;
-}
+// }
 
 // struct Desktop {
 // char** list;
