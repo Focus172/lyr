@@ -1,0 +1,13 @@
+
+# shutdown_cmd = "systemctl poweroff"
+# reboot_cmd = "systemctl reboot"
+rounded = true
+show_fkeys = true
+# show_clock = false
+# show_battery = false
+
+user = ""
+
+# [desktop]
+# name = "Hyprland"
+# command = "hyprlaunch"

@@ -1,29 +1,32 @@
 use std::{
     io::{self, Stdout},
-    sync::mpsc::Receiver,
+    sync::mpsc::{self, Receiver},
     thread,
 };
-
-use crossterm::{event::{Event, EnableMouseCapture, DisableMouseCapture}, terminal::{self, enable_raw_mode, EnterAlternateScreen, disable_raw_mode, LeaveAlternateScreen}};
-// use crossterm::{
-// execute,
-// terminal::{enable_raw_mode, EnterAlternateScreen},
-// };
-// use std::{io, path::PathBuf, thread, time::Duration};
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture, Event},
+    terminal::{
+        disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    },
+};
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
+    style::{Modifier, Style},
+    text::{Span, Spans, Text},
     widgets::{Block, Borders, Paragraph},
     // layout::{Constraint, Direction, Layout},
     // widgets::{Block, Borders, Paragraph},
     // Frame,
-    Terminal, text::{Span, Text, Spans}, style::{Style, Modifier},
+    Terminal,
 };
+
+use crate::{config::Config, input::Input, state::State};
+
+
 
 pub struct Screen {
     term: Terminal<CrosstermBackend<Stdout>>,
-    width: i32,
-    height: i32,
 }
 
 // struct Box {
@@ -63,13 +66,8 @@ struct Term {
     // union anim_state astate;
 }
 
-use std::sync::mpsc;
-
-use crate::{config::Config, input::Input, state::State};
-
 impl Screen {
     pub fn new(conf: &Config) -> Result<(Screen, Receiver<Event>), std::io::Error> {
-        
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -100,8 +98,8 @@ impl Screen {
         // let box_height = 7 + (2 * conf.margin_box_v);
         // let box_width = (2 * conf.margin_box_h) + (config.input_len + 1) + max_len;
 
-        let box_width = 24;
-        let box_height = 8;
+        // let box_width = 24;
+        // let box_height = 8;
 
         // buf->box_chars.left_up = 0x250c;
         // buf->box_chars.left_down = 0x2514;
@@ -115,31 +113,29 @@ impl Screen {
         Ok((
             Screen {
                 term: terminal,
-                width: box_width,
-                height: box_height,
             },
             rx,
         ))
     }
 
-
     // TODO this should get the currently displayed text from the main thread
-    pub fn draw(&mut self, state: &State) -> Result<(), std::io::Error>{
-        
+    pub fn draw(&mut self, state: &State) -> Result<(), std::io::Error> {
         self.term.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
-                .constraints([
-                    Constraint::Length(1), // status bar
-                    Constraint::Length(1), // current os
-                    Constraint::Length(3), // username
-                    Constraint::Length(3), // password
-                    Constraint::Min(1),
-                    // Constraint::Percentage(10),
-                ].as_ref())
+                .constraints(
+                    [
+                        Constraint::Length(1), // status bar
+                        Constraint::Length(1), // current os
+                        Constraint::Length(3), // username
+                        Constraint::Length(3), // password
+                        Constraint::Min(1),
+                        // Constraint::Percentage(10),
+                    ]
+                    .as_ref(),
+                )
                 .split(f.size());
-
 
             // (msg, style)
 
@@ -176,53 +172,70 @@ impl Screen {
             //        .borders(Borders::ALL);
             //    f.render_widget(block, size);
 
+            // multi constaints
+            // let popup_layout = Layout::default()
+            // 		.direction(Direction::Vertical)
+            // 		.constraints(
+            // 			[
+            // 				Constraint::Percentage((100 - percent_y) / 2),
+            // 				Constraint::Percentage(percent_y),
+            // 				Constraint::Percentage((100 - percent_y) / 2),
+            // 			]
+            // 			.as_ref(),
+            // 		)
+            // 		.split(r);
+            //
+            // 	Layout::default()
+            // 		.direction(Direction::Horizontal)
+            // 		.constraints(
+            // 			[
+            // 				Constraint::Percentage((100 - percent_x) / 2),
+            // 				Constraint::Percentage(percent_x),
+            // 				Constraint::Percentage((100 - percent_x) / 2),
+            // 			]
+            // 			.as_ref(),
+            // 		)
+            // 		.split(popup_layout[1])[1]
         })?;
 
-
-
-//     let input = Paragraph::new(app.input.as_ref())
-//         .style(InputMode::Editing => Style::default().fg(Color::Yellow))
-//         .block(Block::default().borders(Borders::ALL).title("Input"));
-//     f.render_widget(input, chunks[1]);
-//
-//             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
-//             f.set_cursor(
-//                 // Put cursor past the end of the input text
-//                 chunks[1].x + app.input.len() as u16 + 1,
-//                 // Move one line down, from the border to the input line
-//                 chunks[1].y + 1,
-//             )
-//
-//     let messages: Vec<ListItem> = app
-//         .messages
-//         .iter()
-//         .enumerate()
-//         .map(|(i, m)| {
-//             let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
-//             ListItem::new(content)
-//         })
-//         .collect();
-//     let messages = List::new(messages).block(Block::default().borders(Borders::ALL).title("Messages"));
-//     f.render_widget(messages, chunks[2]);
-// }
-
-
-
-
+        //     let input = Paragraph::new(app.input.as_ref())
+        //         .style(InputMode::Editing => Style::default().fg(Color::Yellow))
+        //         .block(Block::default().borders(Borders::ALL).title("Input"));
+        //     f.render_widget(input, chunks[1]);
+        //
+        //             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
+        //             f.set_cursor(
+        //                 // Put cursor past the end of the input text
+        //                 chunks[1].x + app.input.len() as u16 + 1,
+        //                 // Move one line down, from the border to the input line
+        //                 chunks[1].y + 1,
+        //             )
+        //
+        //     let messages: Vec<ListItem> = app
+        //         .messages
+        //         .iter()
+        //         .enumerate()
+        //         .map(|(i, m)| {
+        //             let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+        //             ListItem::new(content)
+        //         })
+        //         .collect();
+        //     let messages = List::new(messages).block(Block::default().borders(Borders::ALL).title("Messages"));
+        //     f.render_widget(messages, chunks[2]);
+        // }
 
         Ok(())
 
-            //     // create app and run it
-//     let app = App::default();
-//     let res = run_app(&mut terminal, app);
-//
-//     if let Err(err) = res {
-//         println!("{:?}", err)
-//     }
-//
-//     Ok(())
-// }
-
+        //     // create app and run it
+        //     let app = App::default();
+        //     let res = run_app(&mut terminal, app);
+        //
+        //     if let Err(err) = res {
+        //         println!("{:?}", err)
+        //     }
+        //
+        //     Ok(())
+        // }
     }
     pub fn close(&mut self) -> Result<(), std::io::Error> {
         // restore terminal

@@ -1,5 +1,6 @@
-extern crate crossterm;
-extern crate tui;
+// extern crate crossterm;
+extern crate serde;
+// extern crate tui;
 
 mod input;
 //mod login;
@@ -13,12 +14,10 @@ use crate::state::State;
 use crossterm::event::{Event, KeyCode};
 use std::{io, process};
 
-const DEFAULT_PATH: &str = "/etc/lyr/config.ini";
-
 fn main() -> Result<(), io::Error> {
     // let mut log = Logger::new();
 
-    let config = Config::new()?;
+    let config = Config::new();
 
     // lazy load desktop or something idk, this was in orignal and i dont know what it does
 
@@ -72,11 +71,8 @@ fn main() -> Result<(), io::Error> {
                     state.update = true;
                 }
                 KeyCode::Tab => {
-                    // if state.active_input == 0 {
-                    // cycle the selected desktop thing
-                    // } else {
-                    // go to the next feild without wrapping
-                    // }
+                    state.handle_tab();
+                    state.update = true;
                 }
                 KeyCode::Enter => {
                     // save the two input feilds
@@ -102,10 +98,10 @@ fn main() -> Result<(), io::Error> {
                     state.append_active(c);
                     state.update = true
                 },
-//                     KeyCode::Backspace => {
-//                         app.input.pop();
-//                     }
-
+                // KeyCode::Backspace => {
+                //     app.input.pop();
+                // }
+                // TODO have a key that manually updates the screen
                 _ => {}
             }}
             Event::Mouse(_pos) => {},
@@ -119,7 +115,7 @@ fn main() -> Result<(), io::Error> {
 
     }
 
-    screen.close();
+    screen.close()?;
 
     if state.shutdown {
         //execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);

@@ -46,7 +46,7 @@ impl State {
 
     pub fn append_active(&mut self, letter: char) {
         match self.data.selected {
-            SelectedFeild::Desktop => {}
+            SelectedFeild::Desktop => {}, 
             SelectedFeild::Username => self.data.name.push(letter),
             SelectedFeild::Password => self.data.pass.push(letter),
         }
@@ -64,6 +64,14 @@ impl State {
         match self.data.selected {
             SelectedFeild::Desktop => {}
             SelectedFeild::Username => self.data.selected = SelectedFeild::Desktop,
+            SelectedFeild::Password => self.data.selected = SelectedFeild::Username,
+        }
+    }
+
+    pub fn handle_tab(&mut self) {
+        match self.data.selected {
+            SelectedFeild::Desktop => {}, // TODO cycle the selected desktop
+            SelectedFeild::Username => self.data.selected = SelectedFeild::Password,
             SelectedFeild::Password => self.data.selected = SelectedFeild::Username,
         }
     }

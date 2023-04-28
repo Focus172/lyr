@@ -11,7 +11,7 @@
  - shutdown
 
 ## Configuration
-You can find all the configuration in `/etc/ly/config.ini`.
+You can find all the configuration in `/etc/lyr/config.toml`.
 The file is commented, and includes the default values.
 
 ## Controls
