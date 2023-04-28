@@ -8,6 +8,7 @@ pub struct State {
     pub shutdown: bool,
     pub auth_fails: u8,
     data: TextFeilds,
+    pub renders: u32,
 }
 
 struct TextFeilds {
@@ -41,6 +42,7 @@ impl State {
                 name: String::new(),
                 pass: String::new(),
             },
+            renders: 0,
         }
     }
 

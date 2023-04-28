@@ -1,7 +1,7 @@
 use std::{
-    io::{self, Stdout},
+    io::{self, Stdout, Write},
     sync::mpsc::{self, Receiver},
-    thread,
+    thread, fs::File,
 };
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, Event},
@@ -20,50 +20,10 @@ use tui::{
     // Frame,
     Terminal,
 };
-
 use crate::{config::Config, input::Input, state::State};
-
-
 
 pub struct Screen {
     term: Terminal<CrosstermBackend<Stdout>>,
-}
-
-// struct Box {
-// left_up: u32,
-// uint32_t left_down;
-// uint32_t right_up;
-// uint32_t right_down;
-// uint32_t top;
-// uint32_t bot;
-// uint32_t left;
-// uint32_t right;
-// }
-
-// struct DoomState {
-// 	buf: String,
-// }
-//
-// struct AnimationState {
-// 	doom: DoomState,
-// 	matrix: MatrixState,
-// }
-
-struct Term {
-    // uint16_t width;
-    // uint16_t height;
-    // uint16_t init_width;
-    // uint16_t init_height;
-    //
-    // struct box box_chars;
-    // char* info_line;
-    // uint16_t labels_max_len;
-    // uint16_t box_x;
-    // uint16_t box_y;
-    // uint16_t box_width;
-    // uint16_t box_height;
-
-    // union anim_state astate;
 }
 
 impl Screen {
@@ -71,7 +31,7 @@ impl Screen {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
-        crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+        crossterm::execute!(stdout, EnterAlternateScreen)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
 
@@ -80,7 +40,7 @@ impl Screen {
         let (tx, rx) = mpsc::channel();
 
         // start reading events asyncronosly
-        let input = Input::new(std::io::stdin(), tx);
+        let input = Input::new(tx);
         thread::spawn(move || input.read_events());
 
         // let buf = Buffer::new();
@@ -119,25 +79,49 @@ impl Screen {
     }
 
     // TODO this should get the currently displayed text from the main thread
-    pub fn draw(&mut self, state: &State) -> Result<(), std::io::Error> {
+    pub fn draw(&mut self, state: &State, log: &mut File) -> Result<(), std::io::Error> {
+
+        log.write("starting write".as_bytes())?;
+
         self.term.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .margin(1)
+                // .margin(1)
                 .constraints(
                     [
                         Constraint::Length(1), // status bar
-                        Constraint::Length(1), // current os
-                        Constraint::Length(3), // username
-                        Constraint::Length(3), // password
-                        Constraint::Min(1),
-                        // Constraint::Percentage(10),
+                        Constraint::Min(1), // the rest
                     ]
                     .as_ref(),
                 )
                 .split(f.size());
 
-            // (msg, style)
+            let status_line = chunks[0];
+
+            let div = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(
+                    [
+                        Constraint::Percentage(20),
+                        Constraint::Min(6),
+                        Constraint::Percentage(20),
+                    ]
+                    .as_ref(),
+                )
+                .split(chunks[1]);
+
+            let main_box = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Percentage(20),
+                    // Constraint::Percentage(60),
+                    Constraint::Min(6),
+                    Constraint::Percentage(20),
+                    ].as_ref()
+                )
+                .split(div[1])[1];
+               
+            log.write("created spaces".as_bytes()).unwrap();
 
             let text = Text::from(Spans::from(vec![
                 Span::raw("Reboot: "),
@@ -145,21 +129,28 @@ impl Screen {
                 Span::raw(", Shutdown: "),
                 Span::styled("F2", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(", Capslock: todo!."),
+                Span::raw("Renders: "),
+                Span::raw(state.renders.to_string()),
             ]));
 
             // text.patch_style(Style::default().add_modifier(Modifier::RAPID_BLINK));
 
             let help_message = Paragraph::new(text);
-            f.render_widget(help_message, chunks[0]);
+            f.render_widget(help_message, status_line);
 
-            let desktop = Paragraph::new("this is where the current boot os would go");
-            f.render_widget(desktop, chunks[1]);
+            log.write("Wrote bar".as_bytes()).unwrap();
 
-            let name = Block::default().title("Username").borders(Borders::ALL);
-            f.render_widget(name, chunks[2]);
+            // let desktop = Paragraph::new("this is where the current boot os would go");
+            // f.render_widget(desktop, chunks[1]);
 
-            let pass = Block::default().title("Password").borders(Borders::ALL);
-            f.render_widget(pass, chunks[3]);
+            let name = Block::default().title("Hostname").borders(Borders::ALL);
+            f.render_widget(name, main_box);
+
+
+            log.write("Wrote box".as_bytes()).unwrap();
+
+            // let pass = Block::default().title("Password").borders(Borders::ALL);
+            // f.render_widget(pass, chunks[3]);
 
             // let _block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
             // Block::default()
@@ -198,6 +189,9 @@ impl Screen {
             // 		.split(popup_layout[1])[1]
         })?;
 
+
+        log.write("finished write".as_bytes()).unwrap();
+
         //     let input = Paragraph::new(app.input.as_ref())
         //         .style(InputMode::Editing => Style::default().fg(Color::Yellow))
         //         .block(Block::default().borders(Borders::ALL).title("Input"));
@@ -225,30 +219,58 @@ impl Screen {
         // }
 
         Ok(())
-
-        //     // create app and run it
-        //     let app = App::default();
-        //     let res = run_app(&mut terminal, app);
-        //
-        //     if let Err(err) = res {
-        //         println!("{:?}", err)
-        //     }
-        //
-        //     Ok(())
-        // }
     }
+
     pub fn close(&mut self) -> Result<(), std::io::Error> {
         // restore terminal
         disable_raw_mode()?;
         crossterm::execute!(
             self.term.backend_mut(),
             LeaveAlternateScreen,
-            DisableMouseCapture
         )?;
         self.term.show_cursor()?;
         Ok(())
     }
 }
+
+// struct Box {
+// left_up: u32,
+// uint32_t left_down;
+// uint32_t right_up;
+// uint32_t right_down;
+// uint32_t top;
+// uint32_t bot;
+// uint32_t left;
+// uint32_t right;
+// }
+
+// struct DoomState {
+// 	buf: String,
+// }
+//
+// struct AnimationState {
+// 	doom: DoomState,
+// 	matrix: MatrixState,
+// }
+
+// struct Term {
+    // uint16_t width;
+    // uint16_t height;
+    // uint16_t init_width;
+    // uint16_t init_height;
+    //
+    // struct box box_chars;
+    // char* info_line;
+    // uint16_t labels_max_len;
+    // uint16_t box_x;
+    // uint16_t box_y;
+    // uint16_t box_width;
+    // uint16_t box_height;
+
+    // union anim_state astate;
+// }
+
+
 
 // static void doom_free(struct term_buf* buf);
 // static void matrix_free(struct term_buf* buf);

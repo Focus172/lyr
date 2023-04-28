@@ -12,13 +12,18 @@ use crate::config::Config;
 use crate::screen::Screen;
 use crate::state::State;
 use crossterm::event::{Event, KeyCode};
-use std::{io, process};
+use std::{io::{self, Write}, process, fs::File, time::Duration};
 
 fn main() -> Result<(), io::Error> {
     // let mut log = Logger::new();
 
     let config = Config::new();
 
+    // temp file for logging
+    let mut file = File::create("/home/focus/code/lyr/temp.log")?;
+    file.write("Started logging\n".as_bytes())?;
+
+    
     // lazy load desktop or something idk, this was in orignal and i dont know what it does
 
     // These object are all owned by main who over sees them
@@ -39,10 +44,12 @@ fn main() -> Result<(), io::Error> {
 
             // Place the curser on the login field if there is no saved username
             // if there is, place the curser on the password field
-            screen.draw(&state)?;
-
+            state.renders += 1;
+            file.write(format!("remder: {}\n", state.renders).as_bytes())?;
+            screen.draw(&state, &mut file)?;
             // state.update = config.animate;
         }
+    
 
         // if (config.animate) {
         // 	error = tb_peek_event(&event, config.min_refresh_delta);
@@ -52,19 +59,26 @@ fn main() -> Result<(), io::Error> {
         // panic!("Some error happened");
         // }
 
-        for event in &events { match event {
+        file.write("\n Events: ".as_bytes())?;
+        let event = events.recv_timeout(Duration::from_millis(50));
+
+        match event {
+            Ok(event) => {
+        
+            file.write(format!("\n - {:?}", event).as_bytes())?;
+            match event {
             Event::Key(kd) => { match kd.code {
                 KeyCode::F(1) => {
                     state.shutdown = true;
-                    state.run = false;
+                    // state.run = false;
                 }
                 KeyCode::F(2) => {
                     state.reboot = true;
-                    state.run = false;
+                    // state.run = false;
                 }
                 KeyCode::Down => {
                     state.next_buffer();
-                    state.update = true;
+                   state.update = true;
                 }
                 KeyCode::Up => {
                     state.prev_buffer();
@@ -91,8 +105,8 @@ fn main() -> Result<(), io::Error> {
                     // > system("tput cnorm");
                 }
                 KeyCode::Char('q') => {
-                    state.run = false
-                    // panic!("Quit"); 
+                    // state.run = false
+                    panic!("Quit"); 
                 },
                 KeyCode::Char(c) => {
                     state.append_active(c);
@@ -105,14 +119,20 @@ fn main() -> Result<(), io::Error> {
                 _ => {}
             }}
             Event::Mouse(_pos) => {},
-            Event::Resize(_x, _y) => {},
+            Event::Resize(_x, _y) => {
+                state.update = true
+            },
             Event::Paste(_s) => {},
             Event::FocusLost => {}, // this seems like a security vuln somehow
             Event::FocusGained => {},
-        }}
+        }
+            }
+            Err(_) => {},
+        }
         // 		case TB_KEY_CTRL_C:
         // 			run = false;
 
+        file.write("finished getting keys".as_bytes())?;
     }
 
     screen.close()?;

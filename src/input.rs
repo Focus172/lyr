@@ -1,24 +1,30 @@
 use std::{io::Stdin, sync::mpsc::Sender};
 
 pub struct Input {
-    stdin: Stdin,
     port: Sender<Event>,
     // buffer: String,
     //config: InputConfig,
 }
 
 use crossterm::event::{read, Event};
+
 impl Input {
-    pub fn new(input: Stdin, msg: Sender<Event>) -> Input {
+    pub fn new(msg: Sender<Event>) -> Input {
         Input {
-            stdin: input,
             port: msg,
         }
     }
 
     pub fn read_events(&self) {
         loop {
-            self.port.send(read().unwrap()).unwrap();
+            let evt = read(); 
+            match evt {
+                Ok(e) => match self.port.send(e) {
+                    Ok(_) => {},
+                    Err(_) => {}, 
+                },
+                Err(_) => {}
+            }
         }
     }
 }
