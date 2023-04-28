@@ -65,7 +65,7 @@ struct Term {
 
 use std::sync::mpsc;
 
-use crate::{config::Config, inputs::Input};
+use crate::{config::Config, inputs::Input, state::State};
 
 impl Screen {
     pub fn new(
@@ -73,52 +73,24 @@ impl Screen {
         conf: &Config,
     ) -> Result<(Screen, Receiver<Event>), std::io::Error> {
         
+//     // setup terminal
+//     enable_raw_mode()?;
+//     let mut stdout = io::stdout();
+//     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+//     let backend = CrosstermBackend::new(stdout);
+//     let mut terminal = Terminal::new(backend)?;
+//
+
         terminal.clear()?;
         terminal::enable_raw_mode()?;
 
         let (tx, rx) = mpsc::channel();
-
-        terminal.draw(|f| {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(1)
-                .constraints(
-                [
-                Constraint::Percentage(10),
-                Constraint::Percentage(80),
-                Constraint::Percentage(10),
-            ]
-            .as_ref(),
-        )
-        .split(f.size());
-    let block = Block::default().title("Binary").borders(Borders::ALL);
-    f.render_widget(block, chunks[0]);
-    let block = Block::default().title("Input").borders(Borders::ALL);
-    f.render_widget(block, chunks[1]);
-
-    let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
-        Block::default()
-            .title("Block")
-            .borders(Borders::ALL)
-    );
-
-    f.render_widget(block, chunks[2]);
-
-     // let size = f.size();
-     //    let block = Block::default()
-     //        .title("Block")
-     //        .borders(Borders::ALL);
-     //    f.render_widget(block, size);
-
-        })?;
 
         // start reading events asyncronosly
         let input = Input::new(std::io::stdin(), tx);
         thread::spawn(move || input.read_events());
 
         // let buf = Buffer::new();
-        // or
-        // let buf = self.buf
 
         // let buf.height = self.term_buf.height
         // let buf.height = self.term_buf.height
@@ -155,9 +127,136 @@ impl Screen {
         ))
     }
 
-    pub fn draw(&mut self) {}
+
+    // TODO this should get the currently displayed text from the main thread
+    pub fn draw(&mut self, state: &State) -> Result<(), std::io::Error>{
+        
+        self.term.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Percentage(10),
+                    Constraint::Percentage(80),
+                    Constraint::Percentage(10),
+                    ]
+                    .as_ref()
+                )
+                .split(f.size());
+
+            let block = Block::default().title("Binary").borders(Borders::ALL);
+            f.render_widget(block, chunks[0]);
+            let block = Block::default().title("Input").borders(Borders::ALL);
+            f.render_widget(block, chunks[1]);
+
+            let block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
+            Block::default()
+                .title("Block")
+                .borders(Borders::ALL));
+
+            f.render_widget(block, chunks[2]);
+
+            // let size = f.size();
+            //    let block = Block::default()
+            //        .title("Block")
+            //        .borders(Borders::ALL);
+            //    f.render_widget(block, size);
+
+        })?;
+
+//     let chunks = Layout::default()
+//         .direction(Direction::Vertical)
+//         .margin(2)
+//         .constraints(
+//             [
+//                 Constraint::Length(1),
+//                 Constraint::Length(3),
+//                 Constraint::Min(1),
+//             ]
+//             .as_ref(),
+//         )
+//         .split(f.size());
+//
+//     let (msg, style) = match app.input_mode {
+//         InputMode::Normal => (
+//             vec![
+//                 Span::raw("Press "),
+//                 Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
+//                 Span::raw(" to exit, "),
+//                 Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
+//                 Span::raw(" to start editing."),
+//             ],
+//             Style::default().add_modifier(Modifier::RAPID_BLINK),
+//         ),
+//         InputMode::Editing => (
+//             vec![
+//                 Span::raw("Press "),
+//                 Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
+//                 Span::raw(" to stop editing, "),
+//                 Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
+//                 Span::raw(" to record the message"),
+//             ],
+//             Style::default(),
+//         ),
+//     };
+//     let mut text = Text::from(Spans::from(msg));
+//     text.patch_style(style);
+//     let help_message = Paragraph::new(text);
+//     f.render_widget(help_message, chunks[0]);
+//
+//     let input = Paragraph::new(app.input.as_ref())
+//         .style(InputMode::Editing => Style::default().fg(Color::Yellow))
+//         .block(Block::default().borders(Borders::ALL).title("Input"));
+//     f.render_widget(input, chunks[1]);
+//
+//             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
+//             f.set_cursor(
+//                 // Put cursor past the end of the input text
+//                 chunks[1].x + app.input.len() as u16 + 1,
+//                 // Move one line down, from the border to the input line
+//                 chunks[1].y + 1,
+//             )
+//
+//     let messages: Vec<ListItem> = app
+//         .messages
+//         .iter()
+//         .enumerate()
+//         .map(|(i, m)| {
+//             let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+//             ListItem::new(content)
+//         })
+//         .collect();
+//     let messages = List::new(messages).block(Block::default().borders(Borders::ALL).title("Messages"));
+//     f.render_widget(messages, chunks[2]);
+// }
+
+
+
+
+
+        Ok(())
+
+            //     // create app and run it
+//     let app = App::default();
+//     let res = run_app(&mut terminal, app);
+//
+//     if let Err(err) = res {
+//         println!("{:?}", err)
+//     }
+//
+//     Ok(())
+// }
+
+    }
     pub fn close(&mut self) {
-        todo!("should free the memory")
+        // restore terminal
+        // disable_raw_mode()?;
+        // execute!(
+        //     terminal.backend_mut(),
+        //     LeaveAlternateScreen,
+        //     DisableMouseCapture
+        // )?;
+        // terminal.show_cursor()?;
     }
 }
 

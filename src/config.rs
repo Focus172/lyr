@@ -1,65 +1,23 @@
-//! Configuration file parser
-//! Code should work before config is meaningful
-
 use std::path::PathBuf;
+use crate::DEFAULT_PATH;
 
-use crate::{Status, DEFAULT_PATH};
+// struct Lang;
 
-// HACK this is just to get the program running
+pub struct Desktop {
+    pub display: String,
+    pub command: String,
+}
+
 pub struct Config {
-    pub config_path: Option<PathBuf>,
     //desktop: Desktop,
     //login: String,
     //password: String,
     //lang: Lang,
 }
 
-// pub fn parse_file(file: String, config: &mut Config) -> Status {
-//     for data_line in file
-//         .lines()
-//         .map(|l| l.trim())
-//         .filter(|line| !line.starts_with('#') && !line.is_empty())
-//     {
-//         let mut split = data_line.splitn(2, '=');
-//         let key = split.next().unwrap().trim();
-//         let value = split.next().unwrap().trim();
-//
-//         // match key {
-//         //     "desktop" => {
-//         //         let mut split = value.splitn(2, ':');
-//         //         config.desktop.display = split.next().unwrap().trim().to_string();
-//         //         config.desktop.command = split.next().unwrap().trim().to_string();
-//         //     }
-//         //     "login" => config.login = value.to_string(),
-//         //     "password" => config.password = value.to_string(),
-//         //     _ => println!("Unknown key: {}", key),
-//         // }
-//     }
-//
-//     Status::Ok
-// }
-
 impl Config {
-    pub fn new() -> Self {
-        Self {
-            config_path: None,
-            //desktop: Desktop {
-            //	display: String::new(),
-            //	command: String::new(),
-            //},
-            //login: String::new(),
-            //password: String::new(),
-            //lang: Lang::default(),
-        }
-    }
-
-    pub fn load(&mut self) -> Status {
-        let default = PathBuf::from(DEFAULT_PATH);
-
-        let used_path: &PathBuf = match &self.config_path {
-            Some(path) => path,
-            None => &default,
-        };
+    pub fn new() -> Result<Config, std::io::Error> {
+        let _default = PathBuf::from(DEFAULT_PATH);
 
         // let file = match std::fs::read_to_string(used_path) {
         // 	Ok(config) => config,
@@ -67,16 +25,16 @@ impl Config {
         // };
 
         // parse_file(file, self)
-        Status::Ok
+        Ok(Config {
+            //desktop: Desktop {
+            //	display: String::new(),
+            //	command: String::new(),
+            //},
+            //login: String::new(),
+            //password: String::new(),
+            //lang: Lang::default(),
+        })
     }
-}
-
-// struct Lang;
-//
-
-pub struct Desktop {
-    pub display: String,
-    pub command: String,
 }
 
 /*
