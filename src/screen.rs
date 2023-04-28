@@ -65,7 +65,7 @@ struct Term {
 
 use std::sync::mpsc;
 
-use crate::{config::Config, inputs::Input, state::State};
+use crate::{config::Config, input::Input, state::State};
 
 impl Screen {
     pub fn new(

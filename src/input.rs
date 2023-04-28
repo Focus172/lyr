@@ -47,7 +47,7 @@ impl Input {
     // uint16_t y;
 // }
 
-// struct Desktop {
+pub struct Desktop {
 // char** list;
 // char** list_simple;
 // char** cmd;
@@ -58,7 +58,7 @@ impl Input {
 // uint16_t visible_len;
 // uint16_t x;
 // uint16_t y;
-// }
+}
 
 // void handle_desktop(void* input_struct, struct tb_event* event);
 // void handle_text(void* input_struct, struct tb_event* event);

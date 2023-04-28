@@ -1,4 +1,4 @@
-use crate::config::Desktop;
+use crate::input::Desktop;
 
 pub struct State {
     pub error: Option<i8>,
@@ -35,8 +35,8 @@ impl State {
             data: TextFeilds {
                 selected: SelectedFeild::Username,
                 desktop: Desktop {
-                    display: String::new(),
-                    command: String::new(),
+                    // display: String::new(),
+                    // command: String::new(),
                 },
                 name: String::new(),
                 pass: String::new(),

@@ -3,94 +3,12 @@
 
 ## This project is a WIP
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Dependencies
  - rust
  - tui (0.19.0)
  - pam
  - dbus 
  - shutdown
-
-## Support
-The following desktop environments were tested with success
-
- - sway
- - hyprland 
-
-Ly should work with most wayland desktop environments.
-
-## systemd?
-Unlike what you may have heard, Ly does not require `systemd`,
-and was even specifically designed not to depend on `logind`.
-You should be able to make it work easily with a better init,
-changing the source code won't be necessary :)
-
-## Cloning and Compiling
-Clone the repository
-```
-$ git clone --recurse-submodules https://github.com/focus/ly
-```
-
-Change the directory to ly
-```
-$ cd ly
-```
-
-Compile
-```
-$ cargo build --release 
-```
-
-Test in the configured tty (tty2 by default)
-or a terminal emulator (but desktop environments won't start)
-```
-# cargo run --release 
-```
-
-### OpenRC
-
-Clone, compile and test.
-
-Install Ly and the provided OpenRC service
-```
-# mv lib/ly-openrc /boot/init.d/ 
-```
-
-Enable the service
-```
-# rc-update add ly
-```
-
-You can edit which tty Ly will start on by editing the `tty` option in the configuration file.
-
-If you choose a tty that already has a login/getty running (has a basic login prompt), then you have to disable the getty so it doesn't respawn on top of ly
-```
-# rc-update del agetty.tty2
-```
-
-## Arch Linux Installation
-You can install ly from the [AUR](https://aur.archlinux.org/packages/ly), using yay for example:
-``` 
-$ yay -S ly
-```
 
 ## Configuration
 You can find all the configuration in `/etc/ly/config.ini`.
@@ -106,10 +24,4 @@ The numlock and capslock state is printed in the top-right corner.
 Use the F1 and F2 keys to respectively shutdown and reboot.
 
 ## PSX DOOM fire animation
-To enable the famous PSX DOOM fire described by [Fabien Sanglard](http://fabiensanglard.net/doom_fire_psx/index.html),
-just uncomment `animate = true` in `/etc/ly/config.ini`. You may also
-disable the main box borders with `hide_borders = true`.
-
-## Additional Information
-The name "Ly" is a tribute to the fairy from the game Rayman.
-Ly was tested by oxodao, who is some seriously awesome dude.
+Don't get your hopes up

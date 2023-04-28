@@ -1,14 +1,11 @@
 extern crate crossterm;
 extern crate tui;
 
-mod inputs;
+mod input;
 //mod login;
-// mod utils;
-mod config;
-mod logger;
-//mod parser;
 mod screen;
 mod state;
+mod config;
 
 use crate::config::Config;
 use crate::screen::Screen;
@@ -18,7 +15,7 @@ use crossterm::{
     execute,
     terminal::EnterAlternateScreen,
 };
-use std::io;
+use std::{io, process};
 use tui::{backend::CrosstermBackend, Terminal};
 
 const DEFAULT_PATH: &str = "/etc/lyr/config.ini";
@@ -43,42 +40,27 @@ fn main() -> Result<(), io::Error> {
 
     let (mut screen, events) = Screen::new(terminal, &config)?;
 
-
-    // Place the curser on the login field if there is no saved username
-    // if there is, place the curser on the password field
-    screen.draw(&state)?;
-
     // if config.animate { screen.animate_init(); }
 
     while state.run {
         if state.update {
-            if state.auth_fails < 10 {
-                //(*input_handles[active_input])(input_structs[active_input], NULL);
-                //tb_clear();
-                //animate(&buf);
-                //draw_box(&buf);
-                //draw_labels(&buf);
-                //if(!config.hide_f1_commands)
-                //	draw_f_commands();
-                //draw_lock_state(&buf);
-                //position_input(&buf, &desktop, &login, &password);
-                //draw_desktop(&desktop);
-                //draw_input(&login);
-                //draw_input_mask(&password);
-                // state.update = config.animate;
-            } else {
-                //usleep(10000);
-                //update = cascade(&buf, &auth_fails);
-            }
+            // if state.auth_fails < 10 {
+            // } else
+            //     //usleep(10000);
+            //     //update = cascade(&buf, &auth_fails);
+            // }
+
+            // Place the curser on the login field if there is no saved username
+            // if there is, place the curser on the password field
             screen.draw(&state)?;
+
+            // state.update = config.animate;
         }
 
         // if (config.animate) {
         // 	error = tb_peek_event(&event, config.min_refresh_delta);
-        // } else {
-        // 	error = tb_poll_event(&event);
         // }
-
+        
         // if state.error != None {
         // panic!("Some error happened");
         // }
@@ -143,13 +125,24 @@ fn main() -> Result<(), io::Error> {
         }}
         // 		case TB_KEY_CTRL_C:
         // 			run = false;
+
     }
 
     screen.close();
 
+    if state.shutdown {
+        //execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
+        println!("shutting down...");
+        process::exit(0)
+    }
+    
+    if state.reboot {
+        //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
+        println!("rebooting...");
+        process::exit(0)
+    }
+
     //execl("/bin/sh", "sh", "-c", config.boot_cmd, NULL);
-    //execl("/bin/sh", "sh", "-c", config.shutdown_cmd, NULL);
-    //execl("/bin/sh", "sh", "-c", config.restart_cmd, NULL);
 
     Ok(())
 }
