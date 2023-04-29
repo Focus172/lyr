@@ -11,7 +11,7 @@ use crossterm::{
 };
 use tui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect, Alignment},
     style::{Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Block, Borders, Paragraph},
@@ -20,7 +20,7 @@ use tui::{
     // Frame,
     Terminal,
 };
-use crate::{config::Config, input::Input, state::State};
+use crate::{config::Config, input::Input, state::{State, SelectedFeild}};
 
 pub struct Screen {
     term: Terminal<CrosstermBackend<Stdout>>,
@@ -130,7 +130,6 @@ impl Screen {
                     ].as_ref()
                 )
                 .split(div[1])[1];
-               
 
             if self.show_help {
                 let text = Text::from(Spans::from(vec![
@@ -138,7 +137,7 @@ impl Screen {
                     Span::styled("F1", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(", Shutdown: "),
                     Span::styled("F2", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(", Capslock: todo!."),
+                    Span::raw(", Capslock: todo! "),
                     Span::raw("Renders: "),
                     Span::raw(state.renders.to_string()),
                 ]));
@@ -149,56 +148,46 @@ impl Screen {
                 f.render_widget(help_message, status_line);
             }
 
-
             // let desktop = Paragraph::new("this is where the current boot os would go");
             // f.render_widget(desktop, chunks[1]);
 
-            let name = Block::default().title("Hostname").borders(Borders::ALL);
-            f.render_widget(name, main_box);
-
+            // let name = Block::default().title("Hostname").borders(Borders::ALL);
+            // f.render_widget(name, main_box);
 
             // log.write("Wrote box".as_bytes()).unwrap();
 
             // let pass = Block::default().title("Password").borders(Borders::ALL);
             // f.render_widget(pass, chunks[3]);
 
-            // let _block = Paragraph::new("Words and text and things that are testing thing. Words and text and things that are testing thing. ").block(
-            // Block::default()
-            //     .title("Block")
-            //     .borders(Borders::ALL));
+            let desktop_text = vec![
+                Spans::from(vec![
+                    Span::raw("< "),
+                    Span::styled(state.data.desktop.display.clone(), Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" >"),
+                ]),
+                Spans::from(vec![
+                    Span::raw("Username: "),
+                    Span::raw(state.data.name.clone()),
+                ]),
+                Spans::from(vec![
+                    Span::raw("Password: "),
+                    Span::raw(state.data.pass.clone()),
+                ]),
+            ];
+             
+            let desktop = Paragraph::new(desktop_text).block(
+                Block::default()
+                    .title("Hostname")
+                    .borders(Borders::ALL)
+                );
+                // .alignment(Alignment::Center);
 
-            // let size = f.size();
-            //    let block = Block::default()
-            //        .title("Block")
-            //        .borders(Borders::ALL);
-            //    f.render_widget(block, size);
 
-            // multi constaints
-            // let popup_layout = Layout::default()
-            // 		.direction(Direction::Vertical)
-            // 		.constraints(
-            // 			[
-            // 				Constraint::Percentage((100 - percent_y) / 2),
-            // 				Constraint::Percentage(percent_y),
-            // 				Constraint::Percentage((100 - percent_y) / 2),
-            // 			]
-            // 			.as_ref(),
-            // 		)
-            // 		.split(r);
-            //
-            // 	Layout::default()
-            // 		.direction(Direction::Horizontal)
-            // 		.constraints(
-            // 			[
-            // 				Constraint::Percentage((100 - percent_x) / 2),
-            // 				Constraint::Percentage(percent_x),
-            // 				Constraint::Percentage((100 - percent_x) / 2),
-            // 			]
-            // 			.as_ref(),
-            // 		)
-            // 		.split(popup_layout[1])[1]
+            f.render_widget(desktop, main_box);
+
+            f.set_cursor(main_box.x + 1 + get_x_offset(&state), main_box.y + 1 + get_y_offset(&state));
+
         })?;
-
 
         // log.write("finished write".as_bytes()).unwrap();
 
@@ -243,6 +232,26 @@ impl Screen {
     }
 }
 
+
+fn get_x_offset(s: &State) -> u16 {
+    match s.data.selected {
+        SelectedFeild::Desktop => 2,
+        SelectedFeild::Username => {
+            10 + s.data.name.len() as u16
+        }, 
+        SelectedFeild::Password =>  {
+            10 + s.data.pass.len() as u16 
+        }
+    }
+}
+
+fn get_y_offset(s: &State) -> u16 {
+    match s.data.selected {
+        SelectedFeild::Desktop => 0,
+        SelectedFeild::Username => 1, 
+        SelectedFeild::Password => 2 
+    }
+}
 // struct Box {
 // left_up: u32,
 // uint32_t left_down;

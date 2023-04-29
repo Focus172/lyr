@@ -1,7 +1,3 @@
-// extern crate crossterm;
-extern crate serde;
-// extern crate tui;
-
 mod input;
 //mod login;
 mod config;
@@ -9,10 +5,12 @@ mod screen;
 mod state;
 mod log;
 
-use crate::config::Config;
-use crate::screen::Screen;
-use crate::state::State;
-use crate::log::Logger;
+use crate::{
+    config::Config,
+    screen::Screen,
+    state::State,
+    log::Logger,
+};
 use crossterm::event::{Event, KeyCode};
 use std::{
     io,

@@ -55,6 +55,7 @@ pub struct Desktop {
 // char** cmd;
 // display_server: DisplayServer,
 
+    pub display: String,
 // uint16_t cur;
 // uint16_t len;
 // uint16_t visible_len;

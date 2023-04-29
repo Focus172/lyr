@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 crossterm = "^0.26.1"
-tui = { package = "ratatui" }
+tui = { package = "ratatui", repo = "https://github.com/tui-rs-revival/ratatui" }
 toml = "^0.7.3"
 serde = { version = "^1.0.160", features = ["derive"] }

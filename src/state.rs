@@ -7,18 +7,18 @@ pub struct State {
     pub reboot: bool,
     pub shutdown: bool,
     pub auth_fails: u8,
-    data: TextFeilds,
+    pub data: TextFeilds,
     pub renders: u32,
 }
 
-struct TextFeilds {
-    selected: SelectedFeild,
-    desktop: Desktop,
-    name: String,
-    pass: String,
+pub struct TextFeilds {
+    pub selected: SelectedFeild,
+    pub desktop: Desktop,
+    pub name: String,
+    pub pass: String,
 }
 
-enum SelectedFeild {
+pub enum SelectedFeild {
     Desktop,
     Username,
     Password,
@@ -34,9 +34,9 @@ impl State {
             shutdown: false,
             auth_fails: 0,
             data: TextFeilds {
-                selected: SelectedFeild::Username,
+                selected: SelectedFeild::Desktop,
                 desktop: Desktop {
-                    // display: String::new(),
+                    display: "test".to_string(), //String::new(),
                     // command: String::new(),
                 },
                 name: String::new(),
