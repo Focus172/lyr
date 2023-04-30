@@ -18,6 +18,8 @@ use std::{
     time::Duration,
 };
 
+// use editable_word::EditableWord;
+
 fn main() -> Result<(), io::Error> {
     let mut log = Logger::new();
 
@@ -38,11 +40,8 @@ fn main() -> Result<(), io::Error> {
 
     while state.run {
         if state.update {
-            // if state.auth_fails < 10 {
-            // } else
-            //     //usleep(10000);
-            //     //update = cascade(&buf, &auth_fails);
-            // }
+            // on auth fail
+            // update = cascade(&buf, &auth_fails);
 
             // Place the curser on the login field if there is no saved username
             // if there is, place the curser on the password field
@@ -54,7 +53,7 @@ fn main() -> Result<(), io::Error> {
         }
 
         match state.error {
-            Some(_) => panic!("Error happened: {}", state.error.unwrap()),
+            Some(e) => panic!("Error happened: {}", e),
             None => {},
         }
 

@@ -8,3 +8,5 @@ crossterm = "^0.26.1"
 tui = { package = "ratatui", repo = "https://github.com/tui-rs-revival/ratatui" }
 toml = "^0.7.3"
 serde = { version = "^1.0.160", features = ["derive"] }
+editable-word = { path = "../editable-word" }
+pam = "^0.7.0"

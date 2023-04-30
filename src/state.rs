@@ -1,4 +1,5 @@
 use crate::input::Desktop;
+use editable_word::EditableWord;
 
 pub struct State {
     pub error: Option<i8>,
@@ -7,15 +8,15 @@ pub struct State {
     pub reboot: bool,
     pub shutdown: bool,
     pub auth_fails: u8,
-    pub data: TextFeilds,
     pub renders: u32,
+    pub data: TextFeilds,
 }
 
 pub struct TextFeilds {
     pub selected: SelectedFeild,
     pub desktop: Desktop,
-    pub name: String,
-    pub pass: String,
+    pub name: EditableWord,
+    pub pass: EditableWord,
 }
 
 pub enum SelectedFeild {
@@ -39,8 +40,8 @@ impl State {
                     display: "test".to_string(), //String::new(),
                     // command: String::new(),
                 },
-                name: String::new(),
-                pass: String::new(),
+                name: EditableWord::new(String::new()), 
+                pass: EditableWord::new(String::new()), 
             },
             renders: 0,
         }
@@ -49,8 +50,8 @@ impl State {
     pub fn append_active(&mut self, letter: char) {
         match self.data.selected {
             SelectedFeild::Desktop => {}, 
-            SelectedFeild::Username => self.data.name.push(letter),
-            SelectedFeild::Password => self.data.pass.push(letter),
+            SelectedFeild::Username => self.data.name.add(letter),
+            SelectedFeild::Password => self.data.pass.add(letter),
         }
     }
 
