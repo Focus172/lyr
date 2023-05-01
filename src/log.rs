@@ -6,18 +6,18 @@ pub struct Logger {
 
 impl Logger {
     pub fn new() -> Logger {
-        Logger {
-            // file: None,
-            file: Some(File::create("/home/focus/code/lyr/temp.log").unwrap()),
+        if std::env::var("LYR_LOG").is_ok() {
+            Logger {
+                file: Some(File::create("lyr.log").unwrap()),
+            }
+        } else {
+            Logger { file: None }
         }
     }
 
-    pub fn log(&mut self, msg: &str) -> Result<usize, std::io::Error>{
+    pub fn log(&mut self, msg: &str) { 
         if let Some(file) = &mut self.file {
-            file.write(msg.as_bytes())
-        } else {
-            Ok(0)
-        }
+            file.write(msg.as_bytes());
+        } 
     }
 }
-

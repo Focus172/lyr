@@ -2,7 +2,6 @@ use crate::input::Desktop;
 use editable_word::EditableWord;
 
 pub struct State {
-    pub error: Option<i8>,
     pub run: bool,
     pub update: bool,
     pub reboot: bool,
@@ -28,7 +27,6 @@ pub enum SelectedFeild {
 impl State {
     pub fn new() -> State {
         State {
-            error: None,
             run: true,
             update: true,
             reboot: false,
@@ -76,6 +74,14 @@ impl State {
             SelectedFeild::Desktop => {}, // TODO cycle the selected desktop
             SelectedFeild::Username => self.data.selected = SelectedFeild::Password,
             SelectedFeild::Password => self.data.selected = SelectedFeild::Username,
+        }
+    }
+
+    pub fn del_active(&mut self) {
+        match self.data.selected {
+            SelectedFeild::Desktop => {}, 
+            SelectedFeild::Username => self.data.name.del(),
+            SelectedFeild::Password => self.data.pass.del(),
         }
     }
 }

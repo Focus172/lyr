@@ -25,7 +25,7 @@ fn main() -> Result<(), io::Error> {
 
     let config = Config::new();
 
-    log.log("Starting lyr\n")?;
+    log.log("Starting lyr\n");
 
     // lazy load desktop or something idk, this was in orignal and i dont know what it does
 
@@ -34,6 +34,9 @@ fn main() -> Result<(), io::Error> {
     // main uses the events to update state
     let mut state = State::new();
     let (mut screen, events) = Screen::new(&config)?;
+
+    // TODO have the selected box be owned by a seperate object so
+    // it can bet matched on idependently of the state
 
     // some memory allocation stuff
     // if config.animate { screen.animate_init(); }
@@ -46,16 +49,13 @@ fn main() -> Result<(), io::Error> {
             // Place the curser on the login field if there is no saved username
             // if there is, place the curser on the password field
             state.renders += 1;
-            log.log(format!("Starting render: {}\n", state.renders).as_str())?;
+            log.log(format!("Starting render: {}\n", state.renders).as_str());
             screen.draw(&state)?;
             state.update = false;
             // state.update = config.animate;
         }
 
-        match state.error {
-            Some(e) => panic!("Error happened: {}", e),
-            None => {},
-        }
+        // TODO have this only handle the enter key and pass everything else to some other thing
 
         // this lands at about 60 fps for the animation
         if let Ok(event) = events.recv_timeout(Duration::from_millis(15)) { match event {
@@ -103,9 +103,10 @@ fn main() -> Result<(), io::Error> {
                     state.append_active(c);
                     state.update = true
                 }
-                // KeyCode::Backspace => {
-                //     app.input.pop();
-                // }
+                KeyCode::Backspace => {
+                    state.del_active();
+                    state.update = true;
+                }
                 // TODO have a key that manually updates the screen
                 // TODO have a key that manually exits the program 
                 _ => {}

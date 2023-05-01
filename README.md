@@ -2,6 +2,8 @@
 # Lyr - a TUI display manager
 
 ## This project is a WIP
+ - [X] Rendering everything
+ - [ ] Pam auth working
 
 ## Dependencies
  - rust
