@@ -13,21 +13,22 @@ use crate::{
 };
 use crossterm::event::{Event, KeyCode};
 use std::{
-    io,
     process,
     time::Duration,
 };
 
-// use editable_word::EditableWord;
+use anyhow::Result;
 
-fn main() -> Result<(), io::Error> {
-    let mut log = Logger::new();
+// TODO have a more granular update system
+// instead of redrawing the whole screen every time
+// only redraw the parts that need to be redrawn
+
+fn main() -> Result<()> {
+    let mut log = Logger::new()?;
 
     let config = Config::new();
 
-    log.log("Starting lyr\n");
-
-    // lazy load desktop or something idk, this was in orignal and i dont know what it does
+    log.log("Starting lyr\n")?;
 
     // state repersent the current state of the program
     // screen is passed this to render
@@ -38,7 +39,6 @@ fn main() -> Result<(), io::Error> {
     // TODO have the selected box be owned by a seperate object so
     // it can bet matched on idependently of the state
 
-    // some memory allocation stuff
     // if config.animate { screen.animate_init(); }
 
     while state.run {
@@ -49,7 +49,7 @@ fn main() -> Result<(), io::Error> {
             // Place the curser on the login field if there is no saved username
             // if there is, place the curser on the password field
             state.renders += 1;
-            log.log(format!("Starting render: {}\n", state.renders).as_str());
+            log.log(format!("Starting render: {}\n", state.renders).as_str())?;
             screen.draw(&state)?;
             state.update = false;
             // state.update = config.animate;

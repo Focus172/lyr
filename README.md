@@ -27,3 +27,11 @@ Use the F1 and F2 keys to respectively shutdown and reboot.
 
 ## PSX DOOM fire animation
 Don't get your hopes up
+
+# Editable-word
+
+A usefule abstraction for editing words. Allows editing
+character that span more than one byte in an expected way.
+Too small to host on crates.io for now so just clone it and
+include it locally. Ignoring very specfic use cases like this 
+use `rustyline` instead.

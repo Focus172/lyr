@@ -1,0 +1,9 @@
+[package]
+name = "editable-word"
+version = "0.1.1"
+edition = "2021"
+description = "A library for editing words with multi-byte characters."
+
+[dependencies]
+# unicode-width = "0.1.7"
+# unicode-segmentation = "1.10.0"

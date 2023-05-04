@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::{fs::File, io::Write};
 
 pub struct Logger {
@@ -5,19 +6,20 @@ pub struct Logger {
 }
 
 impl Logger {
-    pub fn new() -> Logger {
+    pub fn new() -> Result<Logger> {
         if std::env::var("LYR_LOG").is_ok() {
-            Logger {
-                file: Some(File::create("lyr.log").unwrap()),
-            }
+            Ok(Logger {
+                file: Some(File::create("lyr.log")?)
+            })
         } else {
-            Logger { file: None }
+            Ok(Logger { file: None })
         }
     }
 
-    pub fn log(&mut self, msg: &str) { 
+    pub fn log(&mut self, msg: &str) -> Result<()> {
         if let Some(file) = &mut self.file {
-            file.write(msg.as_bytes());
-        } 
+            file.write(msg.as_bytes()).map(|_| ())?;
+        }
+        Ok(())
     }
 }
