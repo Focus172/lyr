@@ -1,21 +1,13 @@
 mod input;
 //mod login;
 mod config;
+mod log;
 mod screen;
 mod state;
-mod log;
 
-use crate::{
-    config::Config,
-    screen::Screen,
-    state::State,
-    log::Logger,
-};
+use crate::{config::Config, log::Logger, screen::Screen, state::State};
 use crossterm::event::{Event, KeyCode};
-use std::{
-    process,
-    time::Duration,
-};
+use std::{process, time::Duration};
 
 use anyhow::Result;
 
@@ -33,7 +25,7 @@ fn main() -> Result<()> {
     // state repersent the current state of the program
     // screen is passed this to render
     // main uses the events to update state
-    let mut state = State::new();
+    let mut state = State::default();
     let (mut screen, events) = Screen::new(&config)?;
 
     // TODO have the selected box be owned by a seperate object so
@@ -58,65 +50,70 @@ fn main() -> Result<()> {
         // TODO have this only handle the enter key and pass everything else to some other thing
 
         // this lands at about 60 fps for the animation
-        if let Ok(event) = events.recv_timeout(Duration::from_millis(15)) { match event {
-            Event::Key(kd) => { match kd.code {
-                KeyCode::F(1) => {
-                    state.shutdown = true;
-                    state.run = false;
-                }
-                KeyCode::F(2) => {
-                    state.reboot = true;
-                    state.run = false;
-                }
-                KeyCode::Down => {
-                    state.next_buffer();
-                    state.update = true;
-                }
-                KeyCode::Up => {
-                    state.prev_buffer();
-                    state.update = true;
-                }
-                KeyCode::Tab => {
-                    state.handle_tab();
-                    state.update = true;
-                }
-                KeyCode::Enter => {
-                    // save the two input feilds
-                    // attempt to authenticate
+        if let Ok(event) = events.recv_timeout(Duration::from_millis(15)) {
+            match event {
+                Event::Key(kd) => {
+                    match kd.code {
+                        KeyCode::F(1) => {
+                            state.shutdown = true;
+                            state.run = false;
+                        }
+                        KeyCode::F(2) => {
+                            state.reboot = true;
+                            state.run = false;
+                        }
+                        KeyCode::Down => {
+                            state.next_buffer();
+                            state.update = true;
+                        }
+                        KeyCode::Up => {
+                            state.prev_buffer();
+                            state.update = true;
+                        }
+                        KeyCode::Tab => {
+                            state.handle_tab();
+                            state.update = true;
+                        }
+                        KeyCode::Enter => {
+                            state.handle_enter();
+                           // save the two input feilds
+                            // attempt to authenticate
 
-                    // if auth auth
-                    // > increment fails by 1
-                    // > move input back to password
-                    // > display pam message on info line
-                    // > clear the password
-                    // > reset the authenticate
+                            // if auth auth
+                            // > increment fails by 1
+                            // > move input back to password
+                            // > display pam message on info line
+                            // > clear the password
+                            // > reset the authenticate
 
-                    // else
-                    // > set into line to logout message?
-                    // > load(&desktop, &login);
-                    // > system("tput cnorm");
+                            // else
+                            // > set into line to logout message?
+                            // > load(&desktop, &login);
+                            // > system("tput cnorm");
+                        }
+                        KeyCode::Char('q') => {
+                            state.run = false; // HACK for debugging only
+                        }
+                        KeyCode::Char(c) => {
+                            state.append_active(c);
+                            state.update = true
+                        }
+                        KeyCode::Backspace => {
+                            state.del_active();
+                            state.update = true;
+                        }
+                        // TODO have a key that manually updates the screen
+                        // TODO have a key that manually exits the program
+                        _ => {}
+                    }
                 }
-                KeyCode::Char('q') => {
-                    state.run = false; // HACK for debugging only
-                }
-                KeyCode::Char(c) => {
-                    state.append_active(c);
-                    state.update = true
-                }
-                KeyCode::Backspace => {
-                    state.del_active();
-                    state.update = true;
-                }
-                // TODO have a key that manually updates the screen
-                // TODO have a key that manually exits the program 
-                _ => {}
-            }},
-            Event::Mouse(_pos) => {},
-            Event::Resize(_x, _y) => state.update = true,
-            Event::Paste(_s) => {},
-            Event::FocusLost => {}, // this seems like a security vuln somehow
-            Event::FocusGained => {},
-        }}
+                Event::Mouse(_pos) => {}
+                Event::Resize(_x, _y) => state.update = true,
+                Event::Paste(_s) => {}
+                Event::FocusLost => {} // this seems like a security vuln somehow
+                Event::FocusGained => {}
+            }
+        }
 
         // log.log("Finished getting keys\n")?;
     }

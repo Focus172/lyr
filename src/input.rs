@@ -47,13 +47,16 @@ impl Input {
     // uint16_t y;
 // }
 
-pub struct Desktop {
+pub enum Desktop {
+    Wayland,
+    Xorg,
+    Shell,
 // char** list;
 // char** list_simple;
 // char** cmd;
 // display_server: DisplayServer,
 
-    pub display: String,
+    // pub display: String,
 // uint16_t cur;
 // uint16_t len;
 // uint16_t visible_len;

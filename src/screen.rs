@@ -20,7 +20,7 @@ use tui::{
     // Frame,
     Terminal,
 };
-use crate::{config::Config, input::Input, state::{State, SelectedFeild}};
+use crate::{config::Config, input::{Input, Desktop}, state::{State, SelectedFeild}};
 
 pub struct Screen {
     term: Terminal<CrosstermBackend<Stdout>>,
@@ -162,7 +162,13 @@ impl Screen {
             let desktop_text = vec![
                 Spans::from(vec![
                     Span::raw("< "),
-                    Span::styled(state.data.desktop.display.clone(), Style::default().add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        match state.data.desktop {
+                            Desktop::Wayland => "Wayland",
+                            Desktop::Xorg => "Xorg",
+                            Desktop::Shell=> "Shell",
+                        },
+                        Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" >"),
                 ]),
                 Spans::from(vec![
@@ -172,6 +178,9 @@ impl Screen {
                 Spans::from(vec![
                     Span::raw("Password: "),
                     Span::raw(state.data.pass.word.clone()),
+                ]),
+                Spans::from(vec![
+                    Span::styled("Enter", Style::default().add_modifier(Modifier::UNDERLINED)),
                 ]),
             ];
              
@@ -241,6 +250,7 @@ fn get_x_offset(s: &State) -> u16 {
         SelectedFeild::Password =>  {
             10 + s.data.pass.cursor as u16 
         }
+        SelectedFeild::Enter => 0,
     }
 }
 
@@ -248,7 +258,8 @@ fn get_y_offset(s: &State) -> u16 {
     match s.data.selected {
         SelectedFeild::Desktop => 0,
         SelectedFeild::Username => 1, 
-        SelectedFeild::Password => 2 
+        SelectedFeild::Password => 2,
+        SelectedFeild::Enter => 3,
     }
 }
 
